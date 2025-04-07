@@ -5748,6 +5748,7 @@
       "Acme.Net.Sdk >= 1.0.0",
       "Microsoft.NET.Test.Sdk >= 17.8.0",
       "Moq >= 4.20.72",
+      "NSec.Cryptography >= 24.4.0",
       "coverlet.collector >= 6.0.0",
       "xunit >= 2.5.3",
       "xunit.runner.visualstudio >= 2.5.3"
@@ -5806,6 +5807,10 @@
           "Moq": {
             "target": "Package",
             "version": "[4.20.72, )"
+          },
+          "NSec.Cryptography": {
+            "target": "Package",
+            "version": "[24.4.0, )"
           },
           "coverlet.collector": {
             "target": "Package",
