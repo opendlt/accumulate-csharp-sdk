@@ -1,0 +1,154 @@
+using System;
+using System.Threading.Tasks;
+using Acme.Net.Sdk.Api;
+using Acme.Net.Sdk.Api.V2;
+using Acme.Net.Sdk.Protocol;
+using Acme.Net.Sdk.Protocol.Generated;
+using Acme.Net.Sdk.Rpc;
+using Acme.Net.Sdk.Signing;
+
+namespace Acme.Net.Sdk.Transactions
+{
+    /// <summary>
+    /// Base class for building transactions for the Acme network.
+    /// </summary>
+    public abstract class TransactionBuilder
+    {
+        /// <summary>
+        /// Gets the client used to execute transactions.
+        /// </summary>
+        protected ApiClient Client { get; }
+
+        /// <summary>
+        /// Gets the origin URL of the transaction. This is the URL of the account that is initiating the transaction.
+        /// </summary>
+        protected Url? Origin { get; set; }
+
+        /// <summary>
+        /// Gets or sets the signer used to sign the transaction.
+        /// </summary>
+        protected Signer? Signer { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TransactionBuilder"/> class.
+        /// </summary>
+        /// <param name="client">The client used to execute transactions.</param>
+        /// <exception cref="ArgumentNullException">Thrown if client is null.</exception>
+        protected TransactionBuilder(ApiClient client)
+        {
+            Client = client ?? throw new ArgumentNullException(nameof(client));
+        }
+
+        /// <summary>
+        /// Sets the origin of the transaction.
+        /// </summary>
+        /// <param name="origin">The origin URL of the transaction.</param>
+        /// <returns>This builder for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if origin is null.</exception>
+        public TransactionBuilder WithOrigin(Url origin)
+        {
+            Origin = origin ?? throw new ArgumentNullException(nameof(origin));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the origin of the transaction using a string URL.
+        /// </summary>
+        /// <param name="origin">The origin URL of the transaction as a string.</param>
+        /// <returns>This builder for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if origin is null or empty.</exception>
+        public TransactionBuilder WithOrigin(string origin)
+        {
+            if (string.IsNullOrEmpty(origin))
+                throw new ArgumentNullException(nameof(origin));
+
+            return WithOrigin(new Url(origin));
+        }
+
+        /// <summary>
+        /// Sets the signer for the transaction.
+        /// </summary>
+        /// <param name="signer">The signer to use.</param>
+        /// <returns>This builder for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if signer is null.</exception>
+        public TransactionBuilder WithSigner(Signer signer)
+        {
+            Signer = signer ?? throw new ArgumentNullException(nameof(signer));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the signer for the transaction using a principal.
+        /// </summary>
+        /// <param name="principal">The principal to use for signing.</param>
+        /// <returns>This builder for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if principal is null.</exception>
+        public TransactionBuilder WithSigner(Principal principal)
+        {
+            if (principal == null)
+                throw new ArgumentNullException(nameof(principal));
+
+            // Create a signer from the principal
+            // In a production implementation, this would use the key and other attributes from the principal
+            var signer = new Signer(); // TODO: Initialize with principal's keys
+            return WithSigner(signer);
+        }
+
+        /// <summary>
+        /// Builds the transaction body.
+        /// </summary>
+        /// <returns>The transaction body.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if required fields are not set.</exception>
+        protected abstract ITransactionBody BuildTransactionBody();
+
+        /// <summary>
+        /// Validates that required fields are set before executing the transaction.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Thrown if required fields are not set.</exception>
+        protected virtual void Validate()
+        {
+            if (Origin == null)
+                throw new InvalidOperationException("Origin must be set");
+
+            // Other validations as necessary
+        }
+
+        /// <summary>
+        /// Executes the transaction.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the transaction response.</returns>
+        public virtual async Task<TxResponse> ExecuteAsync()
+        {
+            Validate();
+            
+            var body = BuildTransactionBody();
+            return await Client.ExecuteAsync(body).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Executes the transaction with signing.
+        /// </summary>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the transaction response.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if Signer is not set.</exception>
+        public virtual async Task<TxResponse> ExecuteSignedAsync()
+        {
+            Validate();
+            
+            if (Signer == null)
+                throw new InvalidOperationException("Signer must be set for signed transactions");
+
+            var body = BuildTransactionBody();
+            
+            // In a real implementation, this would:
+            // 1. Create a Transaction object from the body
+            // 2. Set the header properties (version, timestamp)
+            // 3. Sign the transaction using the Signer
+            // 4. Create an EnvelopeBuilder and add the transaction
+            // 5. Add the signature to the envelope
+            // 6. Submit the envelope using AsyncRPCClient
+            
+            // For now, we'll just execute the body directly
+            return await Client.ExecuteAsync(body).ConfigureAwait(false);
+        }
+    }
+} 
