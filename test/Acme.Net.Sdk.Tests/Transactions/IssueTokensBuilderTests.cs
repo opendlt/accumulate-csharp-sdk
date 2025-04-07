@@ -16,7 +16,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly IssueTokensBuilder _builder;
         private readonly Mock<ApiClient> _apiClientMock;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
         
         public IssueTokensBuilderTests()
         {
@@ -93,32 +93,32 @@ namespace Acme.Net.Sdk.Tests.Transactions
         }
 
         [Fact]
-        public void Validate_WithoutOrigin_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutOrigin_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithRecipient(new Url("acc://recipient.acme"));
             _builder.WithAmount(100);
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Origin must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutRecipient_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutRecipient_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Recipient must be specified", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithMultipleRecipients_ButNoRecipients_ThrowsInvalidOperationException()
+        public async Task Validate_WithMultipleRecipients_ButNoRecipients_ThrowsInvalidOperationException()
         {
             // Arrange - trick the builder into thinking it's in multiple recipients mode
             var field = _builder.GetType().GetField("_useMultipleRecipients", 
@@ -128,13 +128,13 @@ namespace Acme.Net.Sdk.Tests.Transactions
             _builder.WithOrigin(new Url("acc://origin.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("At least one recipient must be specified for multiple recipients mode", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithZeroAmount_ThrowsInvalidOperationException()
+        public async Task Validate_WithZeroAmount_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
@@ -142,8 +142,8 @@ namespace Acme.Net.Sdk.Tests.Transactions
             _builder.WithAmount(0);
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Amount must be greater than zero", exception.Message);
         }
 

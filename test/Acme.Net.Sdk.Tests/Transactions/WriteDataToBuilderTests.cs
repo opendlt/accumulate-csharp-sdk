@@ -16,7 +16,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly Mock<ApiClient> _apiClientMock;
         private readonly WriteDataToBuilder _builder;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
 
         public WriteDataToBuilderTests()
         {

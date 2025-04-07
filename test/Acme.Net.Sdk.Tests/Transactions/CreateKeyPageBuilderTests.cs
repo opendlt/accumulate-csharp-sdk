@@ -17,7 +17,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly Mock<ApiClient> _apiClientMock;
         private readonly CreateKeyPageBuilder _builder;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
 
         public CreateKeyPageBuilderTests()
         {

@@ -9,7 +9,7 @@ namespace Acme.Net.Sdk.Tests
 {
     public class AcmeClientTests : IDisposable
     {
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
         private readonly Mock<AsyncRPCClient> _rpcClientMock;
         private readonly AcmeClient _client;
         
@@ -31,11 +31,24 @@ namespace Acme.Net.Sdk.Tests
         [Fact]
         public void Constructor_WithNoParameters_CreatesInstanceWithDefaultRpcClient()
         {
-            // Act
-            var client = new AcmeClient();
+            // Arrange
+            string? originalValue = Environment.GetEnvironmentVariable("ACC_API");
+            try
+            {
+                // Set the environment variable for this test
+                Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
+                
+                // Act
+                var client = new AcmeClient();
 
-            // Assert
-            Assert.NotNull(client);
+                // Assert
+                Assert.NotNull(client);
+            }
+            finally
+            {
+                // Restore the original environment variable
+                Environment.SetEnvironmentVariable("ACC_API", originalValue);
+            }
         }
 
         [Fact]

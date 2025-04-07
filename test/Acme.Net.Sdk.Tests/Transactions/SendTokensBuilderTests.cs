@@ -15,7 +15,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly SendTokensBuilder _builder;
         private readonly Mock<ApiClient> _apiClientMock;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
         
         public SendTokensBuilderTests()
         {
@@ -59,26 +59,26 @@ namespace Acme.Net.Sdk.Tests.Transactions
         }
 
         [Fact]
-        public void Validate_WithoutOrigin_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutOrigin_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.AddRecipient(new Url("acc://recipient.acme"), 100);
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Origin must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutRecipients_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutRecipients_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("At least one recipient must be specified", exception.Message);
         }
 

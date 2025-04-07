@@ -15,7 +15,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly BurnTokensBuilder _builder;
         private readonly Mock<ApiClient> _apiClientMock;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
         
         public BurnTokensBuilderTests()
         {
@@ -98,39 +98,39 @@ namespace Acme.Net.Sdk.Tests.Transactions
         }
 
         [Fact]
-        public void Validate_WithoutOrigin_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutOrigin_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithAmount(1000);
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Origin must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutAmount_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutAmount_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Amount must be greater than zero", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithZeroAmount_ThrowsInvalidOperationException()
+        public async Task Validate_WithZeroAmount_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
             _builder.WithAmount(0);
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Amount must be greater than zero", exception.Message);
         }
 

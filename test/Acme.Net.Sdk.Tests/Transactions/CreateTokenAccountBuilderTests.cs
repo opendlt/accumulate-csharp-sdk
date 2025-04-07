@@ -15,7 +15,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly CreateTokenAccountBuilder _builder;
         private readonly Mock<ApiClient> _apiClientMock;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
         
         public CreateTokenAccountBuilderTests()
         {
@@ -91,41 +91,41 @@ namespace Acme.Net.Sdk.Tests.Transactions
         }
 
         [Fact]
-        public void Validate_WithoutOrigin_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutOrigin_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithAccountUrl(new Url("acc://newaccount.acme"));
             _builder.WithTokenUrl(new Url("acc://token.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Origin must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutAccountUrl_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutAccountUrl_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
             _builder.WithTokenUrl(new Url("acc://token.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Account URL must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutTokenUrl_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutTokenUrl_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
             _builder.WithAccountUrl(new Url("acc://newaccount.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Token URL must be set", exception.Message);
         }
 

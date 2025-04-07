@@ -15,7 +15,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly CreateKeyBookBuilder _builder;
         private readonly Mock<ApiClient> _apiClientMock;
-        private readonly string _originalAccApi;
+        private readonly string? _originalAccApi;
         
         public CreateKeyBookBuilderTests()
         {
@@ -158,41 +158,41 @@ namespace Acme.Net.Sdk.Tests.Transactions
         }
 
         [Fact]
-        public void Validate_WithoutOrigin_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutOrigin_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithKeyBookUrl(new Url("acc://keybook.acme"));
             _builder.AddKeyPage(new Url("acc://keypage.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Origin must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutKeyBookUrl_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutKeyBookUrl_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
             _builder.AddKeyPage(new Url("acc://keypage.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("Key book URL must be set", exception.Message);
         }
 
         [Fact]
-        public void Validate_WithoutKeyPages_ThrowsInvalidOperationException()
+        public async Task Validate_WithoutKeyPages_ThrowsInvalidOperationException()
         {
             // Arrange
             _builder.WithOrigin(new Url("acc://origin.acme"));
             _builder.WithKeyBookUrl(new Url("acc://keybook.acme"));
 
             // Act & Assert
-            var exception = Assert.Throws<InvalidOperationException>(() => 
-                _builder.ExecuteAsync().GetAwaiter().GetResult());
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+                _builder.ExecuteAsync());
             Assert.Contains("At least one key page URL must be specified", exception.Message);
         }
 
