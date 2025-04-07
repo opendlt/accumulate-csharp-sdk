@@ -97,11 +97,11 @@ namespace Acme.Net.Sdk.Tests
             var client = new AcmeClient(mockRpcClient.Object);
 
             // Act
-            var accountsClient = client.Accounts();
+            var accounts = client.Accounts();
 
             // Assert
-            Assert.NotNull(accountsClient);
-            Assert.IsType<AccountsClient>(accountsClient);
+            Assert.NotNull(accounts);
+            Assert.IsType<AccountsClient>(accounts);
         }
 
         [Fact]
@@ -112,11 +112,26 @@ namespace Acme.Net.Sdk.Tests
             var client = new AcmeClient(mockRpcClient.Object);
 
             // Act
-            var tokensClient = client.Tokens();
+            var tokens = client.Tokens();
 
             // Assert
-            Assert.NotNull(tokensClient);
-            Assert.IsType<TokensClient>(tokensClient);
+            Assert.NotNull(tokens);
+            Assert.IsType<TokensClient>(tokens);
+        }
+
+        [Fact]
+        public void Network_ReturnsNetworkClient()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var network = client.Network();
+
+            // Assert
+            Assert.NotNull(network);
+            Assert.IsType<NetworkClient>(network);
         }
 
         [Fact]

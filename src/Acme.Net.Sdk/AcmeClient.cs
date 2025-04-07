@@ -65,6 +65,15 @@ namespace Acme.Net.Sdk
         }
 
         /// <summary>
+        /// Gets a client for interacting with network-level operations in the Acme network.
+        /// </summary>
+        /// <returns>A network client.</returns>
+        public NetworkClient Network()
+        {
+            return new NetworkClient(_rpcClient);
+        }
+
+        /// <summary>
         /// Creates a builder for sending tokens transactions.
         /// </summary>
         /// <returns>A send tokens transaction builder.</returns>
