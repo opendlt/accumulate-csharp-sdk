@@ -56,16 +56,20 @@ namespace Acme.Net.Sdk.Signing
                     throw new NotSupportedException($"Importing key pairs for signature type {type} is not currently supported.");
             }
 
-            if (Key.TryImport(algorithm, secretKey, importFormat, out Key? importedKey))
-            {
-                if (importedKey != null) {
-                    keyPair = new SignatureKeyPair(importedKey, type);
-                    return true;
-                }
-            }
+            var creationParams = new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport };
+            Key? importedKey = null;
             
-            keyPair = null;
-            return false;
+            try
+            {
+                importedKey = Key.Import(algorithm, secretKey, importFormat, creationParams);
+                keyPair = new SignatureKeyPair(importedKey, type);
+                return true;
+            }
+            catch
+            {
+                keyPair = null;
+                return false;
+            }
         }
         
         /// <summary>
@@ -73,7 +77,7 @@ namespace Acme.Net.Sdk.Signing
         /// </summary>
         /// <returns>The raw private key bytes.</returns>
         /// <exception cref="NotSupportedException">Thrown if the key does not support export.</exception>
-        internal byte[] GetPrivateKeyBytes()
+        public byte[] GetPrivateKeyBytes()
         { 
              // Use standard export method, requires KeyExportPolicies.AllowPlaintextExport
             if (!_key.TryExport(KeyBlobFormat.RawPrivateKey, Span<byte>.Empty, out _))

@@ -50,7 +50,7 @@ namespace Acme.Net.Sdk.Protocol.Signing
         /// <returns>A TransactionSignature containing the signature data.</returns>
         /// <exception cref="ArgumentNullException">Thrown when any required parameter is null.</exception>
         /// <exception cref="ArgumentException">Thrown when signatureType is empty or not registered.</exception>
-        public TransactionSignature SignTransaction(Transaction transaction, string signatureType, byte[] privateKeySeed, long? timestamp = null)
+        public virtual TransactionSignature SignTransaction(Transaction transaction, string signatureType, byte[] privateKeySeed, long? timestamp = null)
         {
             if (transaction == null)
                 throw new ArgumentNullException(nameof(transaction));

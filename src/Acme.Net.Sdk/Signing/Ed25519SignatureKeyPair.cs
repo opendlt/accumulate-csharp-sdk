@@ -14,7 +14,7 @@ namespace Acme.Net.Sdk.Signing
         /// Creates a new ED25519 signature key pair by generating a new key.
         /// </summary>
         public Ed25519SignatureKeyPair() 
-            : base(Key.Create(SignatureAlgorithm.Ed25519), SignatureType.ED25519)
+            : base(Key.Create(SignatureAlgorithm.Ed25519, new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport }), SignatureType.ED25519)
         {
         }
 
