@@ -130,6 +130,16 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly Uri _testEndpoint = new Uri("http://test-endpoint.com");
         
+        // Add a static constructor to ensure the environment variable is set
+        static TestAsyncRPCClient()
+        {
+            // Ensure the environment variable is set for testing
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ACC_API")))
+            {
+                Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
+            }
+        }
+        
         public TestAsyncRPCClient() 
             : base(new Uri("http://test-endpoint.com"))
         {
@@ -157,6 +167,16 @@ namespace Acme.Net.Sdk.Tests.Transactions
             
             return Task.FromResult(EnvelopeResponse);
         }
+        
+        // Override SendTxAsync for transaction bodies to avoid network calls
+        public override Task<TxResponse> SendTxAsync(ITransactionBody body)
+        {
+            // Return a dummy TxResponse
+            return Task.FromResult(new TxResponse 
+            { 
+                TxId = "test-tx-id-" + Guid.NewGuid().ToString("N") 
+            });
+        }
     }
 
     // Test-specific ApiClient to allow mocking
@@ -164,11 +184,23 @@ namespace Acme.Net.Sdk.Tests.Transactions
     {
         private readonly Mock<ApiClient> _mock = new Mock<ApiClient>();
 
-        public TestApiClient(AsyncRPCClient rpcClient) 
+        public TestApiClient(AsyncRPCClient rpcClient) : base(rpcClient)
         {
+            // Store the RPC client for test access
             RpcClient = rpcClient;
         }
+        
+        // Add a static constructor to ensure the environment variable is set
+        static TestApiClient()
+        {
+            // Ensure the environment variable is set for testing
+            if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ACC_API")))
+            {
+                Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
+            }
+        }
 
+        // New property that hides the base class property to provide test access
         public new AsyncRPCClient RpcClient { get; }
 
         public void SetupExecuteAsync(TxResponse response)
