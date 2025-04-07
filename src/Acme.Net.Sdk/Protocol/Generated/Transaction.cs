@@ -19,7 +19,7 @@ namespace Acme.Net.Sdk.Protocol.Generated
         /// <summary>
         /// Gets or sets the transaction body.
         /// </summary>
-        public TransactionBody? Body { get; set; }
+        public ITransactionBody? Body { get; set; }
 
         /// <summary>
         /// Gets or sets the pre-computed hash of the transaction (typically set after hashing).
@@ -45,46 +45,7 @@ namespace Acme.Net.Sdk.Protocol.Generated
             {
                 marshaller.WriteValue(2, Body); // Assumes TransactionBody implements IMarshallable
             }
-            return marshaller.ToArray();
-        }
-    }
-
-    // --- Placeholder Definitions --- 
-    // These should be moved to their own files and fully implemented later.
-
-    /// <summary>
-    /// Placeholder for the transaction header.
-    /// </summary>
-    public class TransactionHeader : IMarshallable
-    {
-        // Example property - actual properties needed based on Java definition
-        public Url? Principal { get; set; } 
-        public byte[]? Initiator { get; set; } // Added based on Signer.initiate usage
-
-        public byte[] MarshalBinary()
-        {
-            // TODO: Implement marshalling based on actual header fields
-            var marshaller = new Marshaller();
-            if (Principal != null) marshaller.WriteValue(1, Principal); // Field numbers are examples
-            if (Initiator != null) marshaller.WriteBytes(2, Initiator); 
-            return marshaller.ToArray();
-        }
-    }
-
-    /// <summary>
-    /// Placeholder for the transaction body.
-    /// </summary>
-    public class TransactionBody : IMarshallable
-    {
-         // Example property - actual properties needed based on Java definition
-         public ulong? Amount { get; set; }
-
-        public byte[] MarshalBinary()
-        {
-            // TODO: Implement marshalling based on actual body fields
-            var marshaller = new Marshaller();
-            if (Amount.HasValue) marshaller.WriteUInt(1, Amount.Value); // Field numbers are examples
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 }

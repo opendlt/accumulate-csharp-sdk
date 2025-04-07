@@ -135,7 +135,7 @@ namespace Acme.Net.Sdk.Rpc
         /// <returns>The RPC response.</returns>
         /// <exception cref="RPCException">Thrown if the API returns an error.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the HTTP request fails.</exception>
-        protected RPCResponse SendInternalSync(Rpc.Models.RPCMethod rpcMethod, object? body)
+        protected virtual RPCResponse SendInternalSync(Rpc.Models.RPCMethod rpcMethod, object? body)
         {
             try
             {

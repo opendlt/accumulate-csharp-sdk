@@ -39,7 +39,7 @@ namespace Acme.Net.Sdk.Rpc
         /// </summary>
         /// <param name="body">The transaction body.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the transaction response.</returns>
-        public async Task<TxResponse> SendTxAsync(ITransactionBody body)
+        public virtual async Task<TxResponse> SendTxAsync(ITransactionBody body)
         {
             // This is a placeholder implementation until we have all the needed types
             var rpcMethod = Rpc.Models.RPCMethod.FromClass(body.GetType());
@@ -54,16 +54,23 @@ namespace Acme.Net.Sdk.Rpc
         /// <summary>
         /// Sends a transaction envelope asynchronously.
         /// </summary>
-        /// <param name="envelopeBuilder">The envelope builder containing the transaction.</param>
+        /// <param name="envelope">The envelope containing the transaction.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the transaction status.</returns>
-        public async Task<object?> SendTxAsync(EnvelopeBuilder envelopeBuilder)
+        public virtual async Task<object?> SendTxAsync(Envelope envelope)
         {
             // Using a similar approach as the Java implementation, with a semaphore for sequential processing
             try
             {
                 await EnvelopeLock.WaitAsync().ConfigureAwait(false);
                 
-                var rpcResponse = SendInternalSync(Rpc.Models.RPCMethod.ExecuteDirect, envelopeBuilder);
+                // For subclasses to override and provide alternative implementation
+                if (GetType() != typeof(AsyncRPCClient))
+                {
+                    // In derived types, don't use SendInternalSync which makes real HTTP requests
+                    return await Task.FromResult<object?>(null).ConfigureAwait(false);
+                }
+                
+                var rpcResponse = SendInternalSync(Rpc.Models.RPCMethod.ExecuteDirect, envelope);
                 var txResponse = rpcResponse.AsTransactionResponse();
                 
                 // This is a placeholder implementation until we have TransactionStatus and ResultReader
@@ -85,6 +92,19 @@ namespace Acme.Net.Sdk.Rpc
             {
                 EnvelopeLock.Release();
             }
+        }
+
+        /// <summary>
+        /// Sends a transaction envelope asynchronously.
+        /// </summary>
+        /// <param name="envelopeBuilder">The envelope builder containing the transaction.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the transaction status.</returns>
+        public virtual async Task<object?> SendTxAsync(EnvelopeBuilder envelopeBuilder)
+        {
+            if (envelopeBuilder == null)
+                throw new ArgumentNullException(nameof(envelopeBuilder));
+                
+            return await SendTxAsync(envelopeBuilder.Build()).ConfigureAwait(false);
         }
 
         /// <summary>

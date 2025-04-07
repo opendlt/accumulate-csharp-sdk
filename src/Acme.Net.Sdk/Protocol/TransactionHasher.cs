@@ -2,6 +2,7 @@ using System;
 // TODO: Uncomment these using statements when generated types are available
 // using System.Linq;
 using Acme.Net.Sdk.Protocol.Generated;
+using Acme.Net.Sdk.Protocol.Generated.Protocol;
 using Acme.Net.Sdk.Support;
 
 namespace Acme.Net.Sdk.Protocol
@@ -34,19 +35,130 @@ namespace Acme.Net.Sdk.Protocol
                 throw new ArgumentNullException(nameof(transaction.Body));
             }
 
-            // Use HashBuilder to create a hash that combines header and body
-            var hashBuilder = new HashBuilder();
+            // Calculate the hash by combining the header and body hashes
+            var result = HashTransaction(transaction);
+            return result.Hash ?? throw new InvalidOperationException("Transaction hash was not set properly");
+        }
+
+        /// <summary>
+        /// Calculates the hash for a transaction and sets it on the transaction.
+        /// </summary>
+        /// <param name="transaction">The transaction to hash.</param>
+        /// <returns>The transaction with its hash set.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if transaction, header, or body is null.</exception>
+        public static Transaction HashTransaction(Transaction transaction)
+        {
+            if (transaction == null)
+            {
+                throw new ArgumentNullException(nameof(transaction));
+            }
+
+            if (transaction.Header == null)
+            {
+                throw new ArgumentNullException(nameof(transaction.Header));
+            }
+
+            if (transaction.Body == null)
+            {
+                throw new ArgumentNullException(nameof(transaction.Body));
+            }
+
+            byte[] hashBuffer = new byte[64];
+            int offset = 0;
+
+            // Get the header hash
+            byte[] headerBinary = transaction.Header.MarshalBinary();
+            byte[] headerHash = HashUtils.Sha256(headerBinary);
+            Buffer.BlockCopy(headerHash, 0, hashBuffer, offset, headerHash.Length);
+            offset += headerHash.Length;
+
+            // Get the body hash based on transaction type
+            ITransactionBody txBody = (ITransactionBody)transaction.Body;
             
-            // Add header hash - would normally use header.MarshalBinary()
-            // For placeholder implementation, use a simple representation
-            hashBuilder.AddBytes(GetHeaderBytes(transaction.Header));
-            
-            // Add body hash - would normally use body.MarshalBinary()
-            // For placeholder implementation, use a simple representation
-            hashBuilder.AddBytes(GetBodyBytes((ITransactionBody)transaction.Body));
-            
-            // Return the hash
-            return hashBuilder.GetCheckSum();
+            if (txBody is WriteData writeData)
+            {
+                HashWriteData(hashBuffer, offset, writeData);
+            }
+            else if (txBody is WriteDataTo writeDataTo)
+            {
+                HashWriteDataTo(hashBuffer, offset, writeDataTo);
+            }
+            else
+            {
+                byte[] payloadBinary = txBody.MarshalBinary();
+                byte[] payloadHash = HashUtils.Sha256(payloadBinary);
+                Buffer.BlockCopy(payloadHash, 0, hashBuffer, offset, payloadHash.Length);
+            }
+
+            // Compute the final transaction hash
+            transaction.Hash = HashUtils.Sha256(hashBuffer);
+            return transaction;
+        }
+
+        private static void HashWriteData(byte[] hashBuffer, int offset, WriteData writeData)
+        {
+            // Create a copy without entry data
+            WriteData withoutEntry = new WriteData()
+            {
+                // Copy relevant properties without entry data
+                // For now we're assuming WriteData doesn't have Scratch or WriteToState properties
+                // Adjust if these fields exist
+            };
+
+            byte[] hash = HashWriteDataInternal(withoutEntry, writeData.Data ?? new byte[0], writeData.Format ?? "", writeData.EntryHash ?? "");
+            Buffer.BlockCopy(hash, 0, hashBuffer, offset, hash.Length);
+        }
+
+        private static void HashWriteDataTo(byte[] hashBuffer, int offset, WriteDataTo writeDataTo)
+        {
+            // Create a copy without entry data
+            WriteDataTo withoutEntry = new WriteDataTo()
+            {
+                Recipient = writeDataTo.Recipient
+            };
+
+            byte[] hash = HashWriteDataInternal(withoutEntry, writeDataTo.Data ?? new byte[0], writeDataTo.Format ?? "", writeDataTo.EntryHash ?? "");
+            Buffer.BlockCopy(hash, 0, hashBuffer, offset, hash.Length);
+        }
+
+        private static byte[] HashWriteDataInternal(ITransactionBody withoutEntry, byte[] data, string format, string entryHash)
+        {
+            // Calculate the hash for the transaction body without the entry data
+            byte[] withoutEntryBytes = withoutEntry.MarshalBinary();
+            byte[] withoutEntryHash = HashUtils.Sha256(withoutEntryBytes);
+
+            // Hash the data bytes directly if available
+            byte[] dataHash;
+            if (data != null && data.Length > 0)
+            {
+                dataHash = HashUtils.Sha256(data);
+            }
+            else if (!string.IsNullOrEmpty(entryHash))
+            {
+                // Parse the entry hash (assuming it's a hex string)
+                try
+                {
+                    dataHash = Commons.Codec.Binary.Hex.DecodeHex(entryHash);
+                }
+                catch (Exception)
+                {
+                    // If we can't parse the entry hash, use an empty hash
+                    dataHash = new byte[32];
+                }
+            }
+            else
+            {
+                // No data and no entry hash, use empty hash
+                dataHash = new byte[32];
+            }
+
+            // Combine the two hashes
+            byte[] combined = new byte[64];
+            Buffer.BlockCopy(withoutEntryHash, 0, combined, 0, 32);
+            Buffer.BlockCopy(dataHash, 0, combined, 32, 32);
+
+            // Hash the combined data
+            return HashUtils.Sha256(combined);
         }
 
         // Placeholder for getting header bytes

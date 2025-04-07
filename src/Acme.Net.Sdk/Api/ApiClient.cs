@@ -15,7 +15,7 @@ namespace Acme.Net.Sdk.Api
         /// <summary>
         /// Gets the RPC client used to communicate with the API.
         /// </summary>
-        protected AsyncRPCClient RpcClient { get; }
+        public AsyncRPCClient RpcClient { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ApiClient"/> class.

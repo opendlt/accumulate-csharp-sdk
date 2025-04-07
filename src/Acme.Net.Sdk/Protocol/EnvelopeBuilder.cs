@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Acme.Net.Sdk.Protocol.Generated;
+using Acme.Net.Sdk.Signing;
 // using Acme.Net.Sdk.Core; // Assuming ITransaction and Signature will be here or referenced - REMOVED
 
 namespace Acme.Net.Sdk.Protocol
@@ -17,8 +19,8 @@ namespace Acme.Net.Sdk.Protocol
         {
         }
 
-        private readonly List<ITransaction> _transactions = new List<ITransaction>();
-        private readonly List<Signature> _signatures = new List<Signature>();
+        private readonly List<Transaction> _transactions = new List<Transaction>();
+        private readonly List<Acme.Net.Sdk.Signing.ISignature> _signatures = new List<Acme.Net.Sdk.Signing.ISignature>();
         private string? _txHash;
 
         /// <summary>
@@ -27,7 +29,7 @@ namespace Acme.Net.Sdk.Protocol
         /// <param name="transaction">The transaction to add.</param>
         /// <returns>The builder instance for chaining.</returns>
         /// <exception cref="ArgumentNullException">Thrown if the transaction is null.</exception>
-        public EnvelopeBuilder AddTransaction(ITransaction transaction)
+        public EnvelopeBuilder AddTransaction(Transaction transaction)
         {
             if (transaction == null) throw new ArgumentNullException(nameof(transaction));
             _transactions.Add(transaction);
@@ -40,7 +42,7 @@ namespace Acme.Net.Sdk.Protocol
         /// <param name="signature">The signature to add.</param>
         /// <returns>The builder instance for chaining.</returns>
         /// <exception cref="ArgumentNullException">Thrown if the signature is null.</exception>
-        public EnvelopeBuilder AddSignature(Signature signature)
+        public EnvelopeBuilder AddSignature(Acme.Net.Sdk.Signing.ISignature signature)
         {
              if (signature == null) throw new ArgumentNullException(nameof(signature));
            _signatures.Add(signature);
@@ -75,18 +77,37 @@ namespace Acme.Net.Sdk.Protocol
     // It's often better to define these in their own files when fully implemented.
     public interface ITransaction { /* ... */ }
     public class Signature { /* ... */ }
+    /// <summary>
+    /// Represents a transaction envelope containing transactions and signatures.
+    /// </summary>
     public class Envelope 
     {
-        public IReadOnlyList<ITransaction> Transactions { get; }
-        public IReadOnlyList<Signature> Signatures { get; }
+        /// <summary>
+        /// Gets the transactions in the envelope.
+        /// </summary>
+        public IReadOnlyList<Transaction> Transactions { get; }
+        
+        /// <summary>
+        /// Gets the signatures in the envelope.
+        /// </summary>
+        public IReadOnlyList<Acme.Net.Sdk.Signing.ISignature> Signatures { get; }
+        
+        /// <summary>
+        /// Gets the transaction hash.
+        /// </summary>
         public string? TxHash { get; }
 
-        // Constructor matching the Build method's call
-        public Envelope(List<ITransaction> transactions, List<Signature> signatures, string? txHash)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Envelope"/> class.
+        /// </summary>
+        /// <param name="transactions">The transactions to include.</param>
+        /// <param name="signatures">The signatures to include.</param>
+        /// <param name="txHash">The transaction hash.</param>
+        public Envelope(List<Transaction> transactions, List<Acme.Net.Sdk.Signing.ISignature> signatures, string? txHash)
         { 
             // Defensive copies are good practice
-            Transactions = new List<ITransaction>(transactions).AsReadOnly(); 
-            Signatures = new List<Signature>(signatures).AsReadOnly();
+            Transactions = new List<Transaction>(transactions).AsReadOnly(); 
+            Signatures = new List<Acme.Net.Sdk.Signing.ISignature>(signatures).AsReadOnly();
             TxHash = txHash;
         }
     }
