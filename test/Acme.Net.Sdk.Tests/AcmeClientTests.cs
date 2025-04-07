@@ -31,24 +31,14 @@ namespace Acme.Net.Sdk.Tests
         [Fact]
         public void Constructor_WithNoParameters_CreatesInstanceWithDefaultRpcClient()
         {
-            // Arrange
-            string? originalValue = Environment.GetEnvironmentVariable("ACC_API");
-            try
-            {
-                // Set the environment variable for this test
-                Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
-                
-                // Act
-                var client = new AcmeClient();
+            // Arrange & Act
+            Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
+            var client = new AcmeClient();
 
-                // Assert
-                Assert.NotNull(client);
-            }
-            finally
-            {
-                // Restore the original environment variable
-                Environment.SetEnvironmentVariable("ACC_API", originalValue);
-            }
+            // Assert
+            Assert.NotNull(client);
+            
+            // We don't need to restore the environment variable since it's already handled in the Dispose method
         }
 
         [Fact]

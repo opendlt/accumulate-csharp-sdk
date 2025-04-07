@@ -20,7 +20,7 @@ namespace Acme.Net.Sdk.Protocol
             return typeof(ISignature).IsAssignableFrom(objectType);
         }
 
-        public override object ReadJson(JsonReader reader, System.Type objectType, object existingValue, JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, System.Type objectType, object? existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
@@ -49,7 +49,7 @@ namespace Acme.Net.Sdk.Protocol
             throw new System.NotImplementedException("Signature deserialization not implemented yet");
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             serializer.Serialize(writer, value);
         }

@@ -12,7 +12,7 @@ namespace Acme.Net.Sdk.Protocol
         /// Marshals the transaction body into its binary representation.
         /// </summary>
         /// <returns>A byte array containing the marshalled transaction body.</returns>
-        byte[] MarshalBinary();
+        new byte[] MarshalBinary();
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ namespace Acme.Net.Sdk.Protocol
             return typeof(ITransactionBody).IsAssignableFrom(objectType);
         }
 
-        public override object ReadJson(JsonReader reader, System.Type objectType, object existingValue, JsonSerializer serializer)
+        public override object? ReadJson(JsonReader reader, System.Type objectType, object? existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
                 return null;
@@ -75,7 +75,7 @@ namespace Acme.Net.Sdk.Protocol
             throw new System.NotImplementedException("Transaction body deserialization not implemented yet");
         }
 
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
         {
             serializer.Serialize(writer, value);
         }
