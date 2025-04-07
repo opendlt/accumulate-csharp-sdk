@@ -116,8 +116,15 @@ namespace Acme.Net.Sdk.Transactions
             var createAccount = new CreateTokenAccount();
             
             // Set required properties
-            createAccount.WithUrl(_accountUrl);
-            createAccount.WithTokenUrl(_tokenUrl);
+            if (_accountUrl != null)
+            {
+                createAccount.WithUrl(_accountUrl);
+            }
+            
+            if (_tokenUrl != null)
+            {
+                createAccount.WithTokenUrl(_tokenUrl);
+            }
             
             // Set optional properties if provided
             if (_keyBookUrl != null)

@@ -119,7 +119,10 @@ namespace Acme.Net.Sdk.Transactions
             var createKeyBook = new CreateKeyBook();
             
             // Set key book URL
-            createKeyBook.WithUrl(_keyBookUrl);
+            if (_keyBookUrl != null)
+            {
+                createKeyBook.WithUrl(_keyBookUrl);
+            }
             
             // Add key page URLs
             foreach (var pageUrl in _pageUrls)

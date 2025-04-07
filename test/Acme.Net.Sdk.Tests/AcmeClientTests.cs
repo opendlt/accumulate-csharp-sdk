@@ -1,3 +1,5 @@
+#nullable enable annotations
+
 using System;
 using Acme.Net.Sdk.Api;
 using Acme.Net.Sdk.Rpc;

@@ -1,3 +1,5 @@
+#nullable enable annotations
+
 using System;
 using System.Threading.Tasks;
 using Acme.Net.Sdk.Api;

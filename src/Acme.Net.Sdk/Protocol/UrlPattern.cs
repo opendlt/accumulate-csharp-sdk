@@ -38,7 +38,7 @@ namespace Acme.Net.Sdk.Protocol
         /// </summary>
         /// <param name="urlPattern">The URL pattern.</param>
         /// <returns>The regular expression pattern, or null if not applicable.</returns>
-        public static Regex GetPattern(this UrlPattern urlPattern)
+        public static Regex? GetPattern(this UrlPattern urlPattern)
         {
             return urlPattern switch
             {

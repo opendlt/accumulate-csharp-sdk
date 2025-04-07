@@ -111,7 +111,10 @@ namespace Acme.Net.Sdk.Transactions
             var createKeyPage = new CreateKeyPage();
             
             // Set key page URL
-            createKeyPage.WithUrl(_keyPageUrl);
+            if (_keyPageUrl != null)
+            {
+                createKeyPage.WithUrl(_keyPageUrl);
+            }
             
             // Add keys
             foreach (var key in _keys)

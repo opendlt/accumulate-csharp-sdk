@@ -56,7 +56,7 @@ namespace Acme.Net.Sdk.Rpc
         /// </summary>
         /// <param name="envelopeBuilder">The envelope builder containing the transaction.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the transaction status.</returns>
-        public async Task<object> SendTxAsync(EnvelopeBuilder envelopeBuilder)
+        public async Task<object?> SendTxAsync(EnvelopeBuilder envelopeBuilder)
         {
             // Using a similar approach as the Java implementation, with a semaphore for sequential processing
             try

@@ -89,7 +89,10 @@ namespace Acme.Net.Sdk.Transactions
             var writeData = new WriteData();
             
             // Set required properties
-            writeData.WithData(_data);
+            if (_data != null)
+            {
+                writeData.WithData(_data);
+            }
             
             // Set optional properties if provided
             if (!string.IsNullOrEmpty(_format))
