@@ -82,6 +82,60 @@ namespace Acme.Net.Sdk
             return new IssueTokensBuilder(Tokens());
         }
 
+        /// <summary>
+        /// Creates a builder for creating token account transactions.
+        /// </summary>
+        /// <returns>A create token account transaction builder.</returns>
+        public CreateTokenAccountBuilder CreateTokenAccountBuilder()
+        {
+            return new CreateTokenAccountBuilder(Accounts());
+        }
+
+        /// <summary>
+        /// Creates a builder for burning tokens transactions.
+        /// </summary>
+        /// <returns>A burn tokens transaction builder.</returns>
+        public BurnTokensBuilder CreateBurnTokensBuilder()
+        {
+            return new BurnTokensBuilder(Tokens());
+        }
+
+        /// <summary>
+        /// Creates a builder for creating key book transactions.
+        /// </summary>
+        /// <returns>A create key book transaction builder.</returns>
+        public CreateKeyBookBuilder CreateKeyBookBuilder()
+        {
+            return new CreateKeyBookBuilder(Accounts());
+        }
+
+        /// <summary>
+        /// Creates a builder for creating key page transactions.
+        /// </summary>
+        /// <returns>A create key page transaction builder.</returns>
+        public CreateKeyPageBuilder CreateKeyPageBuilder()
+        {
+            return new CreateKeyPageBuilder(Accounts());
+        }
+
+        /// <summary>
+        /// Creates a builder for writing data to the blockchain.
+        /// </summary>
+        /// <returns>A new <see cref="WriteDataBuilder"/> instance.</returns>
+        public WriteDataBuilder WriteDataBuilder()
+        {
+            return new WriteDataBuilder(Accounts());
+        }
+
+        /// <summary>
+        /// Creates a builder for writing data to a specific account.
+        /// </summary>
+        /// <returns>A new <see cref="WriteDataToBuilder"/> instance.</returns>
+        public WriteDataToBuilder WriteDataToBuilder()
+        {
+            return new WriteDataToBuilder(Accounts());
+        }
+
         // Additional API clients can be added here as needed
     }
 } 

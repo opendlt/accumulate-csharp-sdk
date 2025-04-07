@@ -106,50 +106,125 @@ namespace Acme.Net.Sdk.Signing
             return this;
         }
 
-        // --- Placeholder Methods --- 
-        // These require ISignature, SignExecutors, TransactionHasher etc. to be implemented.
-
         /// <summary>
-        /// Prepares the signature object based on the configured parameters. (Requires ISignature/Executors)
+        /// Prepares the signature object based on the configured parameters.
         /// </summary>
         /// <param name="init">Indicates if this is for transaction initiation (requires version/timestamp).</param>
         /// <returns>An ISignature object representing the prepared signature.</returns>
-        /// <exception cref="NotImplementedException">Thrown until dependencies are ported.</exception>
         /// <exception cref="InvalidOperationException">Thrown if required parameters are missing.</exception>
         public ISignature Prepare(bool init)
         {
             Validate(init); // Perform validation first
-            // TODO: Implement using ISignature implementations (Ed25519SignatureExecutor etc.)
-            throw new NotImplementedException("Prepare method requires ISignature implementations."); 
+
+            // Create the signature through the factory
+            var signature = SignatureExecutorFactory.CreateSignature(_signatureType.Value);
+
+            // Set up common properties
+            if (signature is BaseSignature baseSignature)
+            {
+                baseSignature.SignerUrl = _url;
+                
+                if (init && _version.HasValue)
+                {
+                    baseSignature.Version = _version.Value;
+                }
+                
+                if (init && _timestamp.HasValue)
+                {
+                    baseSignature.Timestamp = _timestamp.Value;
+                }
+                
+                // Extract the public key if possible
+                if (_keyPair != null)
+                {
+                    baseSignature.PublicKey = _keyPair.GetPublicKey();
+                }
+            }
+            
+            return signature;
         }
 
         /// <summary>
-        /// Initiates a transaction by hashing it, setting the initiator hash, and signing the result. (Requires ISignature/Executors/Hasher)
+        /// Initiates a transaction by hashing it, setting the initiator hash, and signing the result.
         /// </summary>
         /// <param name="transaction">The transaction to initiate and sign.</param>
         /// <returns>An ISignature object containing the generated signature.</returns>
-        /// <exception cref="NotImplementedException">Thrown until dependencies are ported.</exception>
-         /// <exception cref="InvalidOperationException">Thrown if transaction header is null or required parameters are missing.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if transaction header is null or required parameters are missing.</exception>
         public ISignature Initiate(Transaction transaction)
         {
-            // TODO: Implement using Prepare, ISignature, TransactionHasher etc.
-            throw new NotImplementedException("Initiate method requires ISignature, TransactionHasher, etc.");
+            if (transaction == null)
+            {
+                throw new ArgumentNullException(nameof(transaction));
+            }
+            
+            if (transaction.Header == null)
+            {
+                throw new InvalidOperationException("Transaction header cannot be null");
+            }
+            
+            if (transaction.Body == null)
+            {
+                throw new InvalidOperationException("Transaction body cannot be null");
+            }
+            
+            // Prepare the signature (for initiation, so pass true)
+            var signature = Prepare(true);
+            
+            // Compute transaction hash
+            byte[] txHash = TransactionHasher.ComputeTransactionHash(transaction);
+            
+            // Get metadata hash based on init mode
+            byte[] metadataHash = GetMetadataHash(signature);
+            
+            // Set the initiator hash on the transaction header
+            transaction.Header.Initiator = metadataHash;
+            
+            // Sign the transaction
+            signature.Sign(txHash, metadataHash, _keyPair!);
+            
+            return signature;
         }
 
         /// <summary>
-        /// Signs an existing transaction hash. (Requires ISignature/Executors)
+        /// Signs an existing transaction hash.
         /// </summary>
         /// <param name="hash">The hash to sign.</param>
         /// <returns>An ISignature object containing the generated signature.</returns>
-        /// <exception cref="NotImplementedException">Thrown until dependencies are ported.</exception>
         /// <exception cref="InvalidOperationException">Thrown if required parameters are missing.</exception>
         public ISignature SignAdditional(byte[] hash)
         {
-             // TODO: Implement using Prepare, ISignature etc.
-            throw new NotImplementedException("SignAdditional method requires ISignature implementations.");
+            if (hash == null || hash.Length == 0)
+            {
+                throw new ArgumentException("Hash cannot be null or empty", nameof(hash));
+            }
+            
+            // Prepare the signature (not for initiation, so pass false)
+            var signature = Prepare(false);
+            
+            // Sign the hash (with empty metadata array since this isn't initiation)
+            signature.Sign(hash, new byte[0], _keyPair!);
+            
+            return signature;
         }
 
-        // --- Private Helper --- 
+        /// <summary>
+        /// Gets the metadata hash based on the initialization mode.
+        /// </summary>
+        /// <param name="signature">The signature to get the metadata hash for.</param>
+        /// <returns>The metadata hash.</returns>
+        private byte[] GetMetadataHash(ISignature signature)
+        {
+            var hashBuilder = signature.GetInitiatorHashBuilder();
+            
+            switch (_initMode)
+            {
+                case InitHashMode.INIT_WITH_SIMPLE_HASH:
+                    return hashBuilder.GetCheckSum();
+                case InitHashMode.INIT_WITH_MERKLE_HASH:
+                default:
+                    return hashBuilder.MerkleHash();
+            }
+        }
 
         private void Validate(bool init)
         {

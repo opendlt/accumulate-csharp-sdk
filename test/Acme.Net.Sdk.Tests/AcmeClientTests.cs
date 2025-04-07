@@ -10,13 +10,16 @@ namespace Acme.Net.Sdk.Tests
     public class AcmeClientTests : IDisposable
     {
         private readonly string _originalAccApi;
+        private readonly Mock<AsyncRPCClient> _rpcClientMock;
+        private readonly AcmeClient _client;
         
         public AcmeClientTests()
         {
-            // Save original environment variable value
             _originalAccApi = Environment.GetEnvironmentVariable("ACC_API");
-            // Set test environment variable
             Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
+
+            _rpcClientMock = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            _client = new AcmeClient(_rpcClientMock.Object);
         }
         
         public void Dispose()
@@ -179,6 +182,111 @@ namespace Acme.Net.Sdk.Tests
             // Assert
             Assert.NotNull(apiClient);
             Assert.IsType<TokensClient>(apiClient);
+        }
+
+        [Fact]
+        public void CreateTokenAccountBuilder_ReturnsCreateTokenAccountBuilder()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var builder = client.CreateTokenAccountBuilder();
+
+            // Assert
+            Assert.NotNull(builder);
+            Assert.IsType<CreateTokenAccountBuilder>(builder);
+        }
+
+        [Fact]
+        public void CreateTokenAccountBuilder_BuilderUsesAccountsClient()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var builder = client.CreateTokenAccountBuilder();
+            
+            // Get protected Client property via reflection
+            var clientProperty = builder.GetType().BaseType?.GetProperty("Client", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var apiClient = clientProperty?.GetValue(builder);
+
+            // Assert
+            Assert.NotNull(apiClient);
+            Assert.IsType<AccountsClient>(apiClient);
+        }
+
+        [Fact]
+        public void CreateBurnTokensBuilder_ReturnsBurnTokensBuilder()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var builder = client.CreateBurnTokensBuilder();
+
+            // Assert
+            Assert.NotNull(builder);
+            Assert.IsType<BurnTokensBuilder>(builder);
+        }
+
+        [Fact]
+        public void CreateBurnTokensBuilder_BuilderUsesTokensClient()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var builder = client.CreateBurnTokensBuilder();
+            
+            // Get protected Client property via reflection
+            var clientProperty = builder.GetType().BaseType?.GetProperty("Client", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var apiClient = clientProperty?.GetValue(builder);
+
+            // Assert
+            Assert.NotNull(apiClient);
+            Assert.IsType<TokensClient>(apiClient);
+        }
+
+        [Fact]
+        public void CreateKeyBookBuilder_ReturnsCreateKeyBookBuilder()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var builder = client.CreateKeyBookBuilder();
+
+            // Assert
+            Assert.NotNull(builder);
+            Assert.IsType<CreateKeyBookBuilder>(builder);
+        }
+
+        [Fact]
+        public void CreateKeyBookBuilder_BuilderUsesAccountsClient()
+        {
+            // Arrange
+            var mockRpcClient = new Mock<AsyncRPCClient>(new Uri("http://test-endpoint.com"));
+            var client = new AcmeClient(mockRpcClient.Object);
+
+            // Act
+            var builder = client.CreateKeyBookBuilder();
+            
+            // Get protected Client property via reflection
+            var clientProperty = builder.GetType().BaseType?.GetProperty("Client", 
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var apiClient = clientProperty?.GetValue(builder);
+
+            // Assert
+            Assert.NotNull(apiClient);
+            Assert.IsType<AccountsClient>(apiClient);
         }
     }
 } 

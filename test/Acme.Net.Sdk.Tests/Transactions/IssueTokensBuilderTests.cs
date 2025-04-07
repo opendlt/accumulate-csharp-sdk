@@ -15,7 +15,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
     public class IssueTokensBuilderTests : IDisposable
     {
         private readonly IssueTokensBuilder _builder;
-        private readonly Mock<TokensClient> _mockApiClient;
+        private readonly Mock<ApiClient> _apiClientMock;
         private readonly string _originalAccApi;
         
         public IssueTokensBuilderTests()
@@ -25,12 +25,8 @@ namespace Acme.Net.Sdk.Tests.Transactions
             // Set test environment variable
             Environment.SetEnvironmentVariable("ACC_API", "http://test-endpoint.com");
             
-            // Set up mock TokensClient using a specific endpoint to avoid environment variable issues
-            _mockApiClient = new Mock<TokensClient>(new Uri("http://test-endpoint.com"));
-            _mockApiClient.Setup(c => c.ExecuteAsync(It.IsAny<IssueTokens>()))
-                .ReturnsAsync(new TxResponse());
-                
-            _builder = new IssueTokensBuilder(_mockApiClient.Object);
+            _apiClientMock = new Mock<ApiClient>(new Uri("http://test-endpoint.com"));
+            _builder = new IssueTokensBuilder(_apiClientMock.Object);
         }
         
         public void Dispose()
@@ -163,7 +159,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
             await _builder.ExecuteAsync();
 
             // Assert
-            _mockApiClient.Verify(c => c.ExecuteAsync(It.IsAny<IssueTokens>()), Times.Once);
+            _apiClientMock.Verify(c => c.ExecuteAsync(It.IsAny<IssueTokens>()), Times.Once);
         }
 
         [Fact]

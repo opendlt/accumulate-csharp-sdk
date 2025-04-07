@@ -12,6 +12,7 @@
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Acme.Net.Sdk.Tests.runtimeconfig.json
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Acme.Net.Sdk.Tests.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Acme.Net.Sdk.Tests.pdb
+/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Castle.Core.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.CodeCoverage.Shim.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.CoreUtilities.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.PlatformAbstractions.dll
@@ -21,9 +22,11 @@
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Microsoft.TestPlatform.Utilities.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Microsoft.VisualStudio.TestPlatform.Common.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/testhost.dll
+/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Moq.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Newtonsoft.Json.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/NSec.Cryptography.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/NuGet.Frameworks.dll
+/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/System.Diagnostics.EventLog.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/xunit.abstractions.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/xunit.assert.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/xunit.core.dll
@@ -103,6 +106,8 @@
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/osx-x64/native/libsodium.dylib
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/win-x64/native/libsodium.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/win-x86/native/libsodium.dll
+/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Diagnostics.EventLog.Messages.dll
+/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Diagnostics.EventLog.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Acme.Net.Sdk.dll
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Acme.Net.Sdk.pdb
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/obj/Debug/net8.0/Acme.Net.134887ED.Up2Date
@@ -111,8 +116,3 @@
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/obj/Debug/net8.0/Acme.Net.Sdk.Tests.pdb
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/obj/Debug/net8.0/Acme.Net.Sdk.Tests.genruntimeconfig.cache
 /home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/obj/Debug/net8.0/ref/Acme.Net.Sdk.Tests.dll
-/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Castle.Core.dll
-/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/Moq.dll
-/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/System.Diagnostics.EventLog.dll
-/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Diagnostics.EventLog.Messages.dll
-/home/bunfield/Software/sdk/acme.net/test/Acme.Net.Sdk.Tests/bin/Debug/net8.0/runtimes/win/lib/net6.0/System.Diagnostics.EventLog.dll

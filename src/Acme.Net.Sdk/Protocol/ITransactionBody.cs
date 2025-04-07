@@ -8,6 +8,11 @@ namespace Acme.Net.Sdk.Protocol
     [JsonConverter(typeof(TransactionBodyConverter))]
     public interface ITransactionBody : IMarshallable, IRPCBody
     {
+        /// <summary>
+        /// Marshals the transaction body into its binary representation.
+        /// </summary>
+        /// <returns>A byte array containing the marshalled transaction body.</returns>
+        byte[] MarshalBinary();
     }
 
     /// <summary>

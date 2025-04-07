@@ -66,16 +66,13 @@ namespace Acme.Net.Sdk.Support
         /// </summary>
         /// <param name="value">The BigInteger value.</param>
         /// <returns>The current <see cref="HashBuilder"/> instance.</returns>
-        /// <exception cref="NotImplementedException">Thrown because Marshaller class is not yet ported.</exception>
-        /// <remarks>TODO: Implement fully when Marshaller class is ported.</remarks>
         public HashBuilder AddUInt(BigInteger? value)
         {
             if (value.HasValue)
             {
-                // Original code: add(Marshaller.toUIntBuffer(value));
-                throw new NotImplementedException("Depends on the Marshaller class which is not yet ported.");
-                // byte[] bytesToHash = Marshaller.ToUIntBuffer(value.Value); // Needs Marshaller.ToUIntBuffer
-                // AddInternal(bytesToHash);
+                // Use the ToUIntBuffer method from Marshaller that matches Java implementation
+                byte[] bytesToHash = Marshaller.ToUIntBuffer(value.Value);
+                AddInternal(bytesToHash);
             }
             return this;
         }
@@ -86,17 +83,14 @@ namespace Acme.Net.Sdk.Support
         /// </summary>
         /// <param name="value">The long value.</param>
         /// <returns>The current <see cref="HashBuilder"/> instance.</returns>
-        /// <exception cref="NotImplementedException">Thrown because Marshaller class is not yet ported.</exception>
-        /// <remarks>TODO: Implement fully when Marshaller class is ported.</remarks>
         public HashBuilder AddLong(long? value)
         {
             if (value.HasValue)
             {
-                 // Original code: add(Marshaller.toUIntBuffer(value));
-                throw new NotImplementedException("Depends on the Marshaller class which is not yet ported.");
-                // byte[] bytesToHash = Marshaller.ToUIntBuffer(value.Value); // Needs Marshaller.ToUIntBuffer
-                // AddInternal(bytesToHash);
-           }
+                // Use the ToUIntBuffer method from Marshaller that matches Java implementation
+                byte[] bytesToHash = Marshaller.ToUIntBuffer(value.Value);
+                AddInternal(bytesToHash);
+            }
             return this;
         }
 

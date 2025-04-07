@@ -136,11 +136,28 @@ namespace Acme.Net.Sdk.Tests.Support
         }
 
         [Fact]
-        public void TestStubbedMethodsThrow()
+        public void TestUIntAndLongMethods()
         {
-             var builder = new HashBuilder();
-            Assert.Throws<NotImplementedException>(() => builder.AddUInt(123));
-            Assert.Throws<NotImplementedException>(() => builder.AddLong(456L));
+            var builder = new HashBuilder();
+            
+            // Test AddUInt with integer
+            var hashBeforeInt = builder.MerkleHash();
+            builder.AddUInt(123);
+            var hashAfterInt = builder.MerkleHash();
+            Assert.NotEqual(hashBeforeInt, hashAfterInt); // Hash should change after adding
+            
+            // Test AddLong
+            var hashBeforeLong = builder.MerkleHash();
+            builder.AddLong(456L);
+            var hashAfterLong = builder.MerkleHash();
+            Assert.NotEqual(hashBeforeLong, hashAfterLong); // Hash should change after adding
+            
+            // Test null values
+            var hashBefore = builder.MerkleHash();
+            builder.AddUInt(null);
+            builder.AddLong(null);
+            var hashAfter = builder.MerkleHash();
+            Assert.Equal(hashBefore, hashAfter); // Hash should not change when adding nulls
         }
     }
 } 

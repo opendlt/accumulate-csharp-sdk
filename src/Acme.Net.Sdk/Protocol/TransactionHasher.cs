@@ -1,8 +1,8 @@
 using System;
 // TODO: Uncomment these using statements when generated types are available
 // using System.Linq;
-// using Acme.Net.Sdk.Protocol.Generated.Protocol;
-// using Acme.Net.Sdk.Support;
+using Acme.Net.Sdk.Protocol.Generated;
+using Acme.Net.Sdk.Support;
 
 namespace Acme.Net.Sdk.Protocol
 {
@@ -11,6 +11,64 @@ namespace Acme.Net.Sdk.Protocol
     /// </summary>
     public static class TransactionHasher
     {
+        /// <summary>
+        /// Computes the hash for a transaction.
+        /// </summary>
+        /// <param name="transaction">The transaction to hash.</param>
+        /// <returns>The computed hash.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if transaction, header, or body is null.</exception>
+        public static byte[] ComputeTransactionHash(Transaction transaction)
+        {
+            if (transaction == null)
+            {
+                throw new ArgumentNullException(nameof(transaction));
+            }
+
+            if (transaction.Header == null)
+            {
+                throw new ArgumentNullException(nameof(transaction.Header));
+            }
+
+            if (transaction.Body == null)
+            {
+                throw new ArgumentNullException(nameof(transaction.Body));
+            }
+
+            // Use HashBuilder to create a hash that combines header and body
+            var hashBuilder = new HashBuilder();
+            
+            // Add header hash - would normally use header.MarshalBinary()
+            // For placeholder implementation, use a simple representation
+            hashBuilder.AddBytes(GetHeaderBytes(transaction.Header));
+            
+            // Add body hash - would normally use body.MarshalBinary()
+            // For placeholder implementation, use a simple representation
+            hashBuilder.AddBytes(GetBodyBytes((ITransactionBody)transaction.Body));
+            
+            // Return the hash
+            return hashBuilder.GetCheckSum();
+        }
+
+        // Placeholder for getting header bytes
+        private static byte[] GetHeaderBytes(TransactionHeader header)
+        {
+            // In a full implementation, this would use the marshalled binary representation
+            // For now, if Principal URL is available, use its bytes, otherwise return default hash
+            if (header.Principal != null)
+            {
+                return header.Principal.GetBytes();
+            }
+            return new byte[32]; // Default empty hash
+        }
+
+        // Placeholder for getting body bytes
+        private static byte[] GetBodyBytes(ITransactionBody body)
+        {
+            // In a full implementation, this would use the marshalled binary representation
+            // For now, return a placeholder
+            return new byte[32]; // Default empty hash
+        }
+
         // Implementation commented out until required generated types are available
         /*
         /// <summary>

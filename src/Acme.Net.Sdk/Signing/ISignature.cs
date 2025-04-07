@@ -63,6 +63,6 @@ namespace Acme.Net.Sdk.Signing
         /// Gets the underlying generated signature model object.
         /// </summary>
         /// <returns>The generated Signature object.</returns>
-        Signature GetModel(); // Using the base generated Signature type
+        Protocol.Generated.Signature GetModel(); // Using the base generated Signature type
     }
 }
