@@ -58,10 +58,13 @@ namespace Acme.Net.Sdk.Signing
 
             if (Key.TryImport(algorithm, secretKey, importFormat, out Key? importedKey))
             {
-                keyPair = new SignatureKeyPair(importedKey, type);
-                return true;
+                if (importedKey != null) {
+                    keyPair = new SignatureKeyPair(importedKey, type);
+                    return true;
+                }
             }
             
+            keyPair = null;
             return false;
         }
         

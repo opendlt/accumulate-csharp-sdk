@@ -4,6 +4,8 @@ using Acme.Net.Sdk.Protocol.Generated;
 using Acme.Net.Sdk.Signing;
 using Xunit;
 
+#nullable enable annotations
+
 namespace Acme.Net.Sdk.Tests.Signing
 {
     public class SignerTests

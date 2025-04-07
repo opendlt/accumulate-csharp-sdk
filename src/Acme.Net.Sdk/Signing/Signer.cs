@@ -116,6 +116,13 @@ namespace Acme.Net.Sdk.Signing
         {
             Validate(init); // Perform validation first
 
+            // Validate checks that _signatureType has a value, so this is safe
+            // but we'll add a null check to satisfy the compiler
+            if (!_signatureType.HasValue)
+            {
+                throw new InvalidOperationException("Missing signature type.");
+            }
+
             // Create the signature through the factory
             var signature = SignatureExecutorFactory.CreateSignature(_signatureType.Value);
 
@@ -201,7 +208,7 @@ namespace Acme.Net.Sdk.Signing
             // Prepare the signature (not for initiation, so pass false)
             var signature = Prepare(false);
             
-            // Sign the hash (with empty metadata array since this isn't initiation)
+            // Validate will throw if _keyPair is null, so it's safe to use ! here
             signature.Sign(hash, new byte[0], _keyPair!);
             
             return signature;

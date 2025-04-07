@@ -9,6 +9,8 @@ using Acme.Net.Sdk.Transactions;
 using Moq;
 using Xunit;
 
+#nullable enable annotations
+
 namespace Acme.Net.Sdk.Tests.Transactions
 {
     public class BurnTokensBuilderTests : IDisposable

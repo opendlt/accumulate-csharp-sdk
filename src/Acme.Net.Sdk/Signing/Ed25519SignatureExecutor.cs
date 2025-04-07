@@ -80,7 +80,7 @@ namespace Acme.Net.Sdk.Signing
                     return false;
                 }
 
-                return _algorithm.Verify(nsecPublicKey, data, signature);
+                return nsecPublicKey != null && _algorithm.Verify(nsecPublicKey, data, signature);
             }
             catch
             {
