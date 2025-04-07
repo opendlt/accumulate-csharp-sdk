@@ -99,6 +99,15 @@ namespace Acme.Net.Sdk
         {
             return new CreateTokenAccountBuilder(Accounts());
         }
+        
+        /// <summary>
+        /// Creates a builder for creating token transactions.
+        /// </summary>
+        /// <returns>A create token transaction builder.</returns>
+        public CreateTokenBuilder CreateTokenBuilder()
+        {
+            return new CreateTokenBuilder(Tokens());
+        }
 
         /// <summary>
         /// Creates a builder for burning tokens transactions.
@@ -107,6 +116,15 @@ namespace Acme.Net.Sdk
         public BurnTokensBuilder CreateBurnTokensBuilder()
         {
             return new BurnTokensBuilder(Tokens());
+        }
+        
+        /// <summary>
+        /// Creates a builder for adding credits to an account.
+        /// </summary>
+        /// <returns>An add credits transaction builder.</returns>
+        public AddCreditsBuilder CreateAddCreditsBuilder()
+        {
+            return new AddCreditsBuilder(Accounts());
         }
 
         /// <summary>
