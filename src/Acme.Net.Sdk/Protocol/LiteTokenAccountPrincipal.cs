@@ -13,15 +13,13 @@ namespace Acme.Net.Sdk.Protocol
     /// </summary>
     public class LiteTokenAccountPrincipal : Principal
     {
-        // Placeholder for the Lite Token Account generated class
-        // Needs URL and TokenUrl properties to satisfy base constructor logic
-        private class LiteTokenAccountPlaceholder : IAccount
-        {
-            public Url Url { get; internal set; } = null!;
-            public Url TokenUrl { get; internal set; } = null!; // Specific to token accounts
-        }
-
         private static readonly UrlRegistry _urlRegistry = new UrlRegistry();
+
+        /// <summary>
+        /// Gets the Lite Token Account associated with this principal.
+        /// </summary>
+        public LiteTokenAccount LiteTokenAccount => Account as LiteTokenAccount ?? 
+            throw new InvalidOperationException("Account is not a LiteTokenAccount");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LiteTokenAccountPrincipal"/> class for the ACME token.
@@ -43,13 +41,19 @@ namespace Acme.Net.Sdk.Protocol
         /// <param name="keyPair">The key pair for this principal.</param>
         /// <exception cref="ArgumentNullException">Thrown if tokenUrl or keyPair is null.</exception>
         public LiteTokenAccountPrincipal(Url tokenUrl, Acme.Net.Sdk.Signing.SignatureKeyPair keyPair)
-            : base(new LiteTokenAccountPlaceholder {
-                       Url = ComputeUrl(keyPair.GetPublicKey(), tokenUrl ?? throw new ArgumentNullException(nameof(tokenUrl))), // Compute URL merged with tokenUrl
-                       TokenUrl = tokenUrl // Already checked for null
-                   },
-                   keyPair ?? throw new ArgumentNullException(nameof(keyPair)))
+            : base(CreateLiteTokenAccount(keyPair, tokenUrl), keyPair)
         {
             // Base constructor handles assignment
+        }
+
+        // Helper method to create a LiteTokenAccount with computed URL
+        private static LiteTokenAccount CreateLiteTokenAccount(Acme.Net.Sdk.Signing.SignatureKeyPair keyPair, Url tokenUrl)
+        {
+            if (keyPair == null) throw new ArgumentNullException(nameof(keyPair));
+            if (tokenUrl == null) throw new ArgumentNullException(nameof(tokenUrl));
+
+            var accountUrl = ComputeUrl(keyPair.GetPublicKey(), tokenUrl);
+            return new LiteTokenAccount(accountUrl, tokenUrl);
         }
 
         /// <summary>
@@ -114,8 +118,6 @@ namespace Acme.Net.Sdk.Protocol
             return new Acme.Net.Sdk.Signing.SignatureKeyPair(key, signatureType);
         }
 
-        // Removed static generateWithKeypair as it was package-private and less useful than the public constructors/Generate methods
-
         /// <summary>
         /// Exports the key pair associated with this principal to a base64 string, indicating Lite Token Account type.
         /// </summary>
@@ -125,7 +127,6 @@ namespace Acme.Net.Sdk.Protocol
             // Need access to the protected method in the base class
             return base.ExportToBase64(AccountType.LITE_TOKEN_ACCOUNT);
         }
-
 
         /// <summary>
         /// Imports a LiteTokenAccountPrincipal from a base64 encoded key pair string.
@@ -139,14 +140,6 @@ namespace Acme.Net.Sdk.Protocol
             // Uses the constructor that defaults to the ACME token URL
             return new LiteTokenAccountPrincipal(keyPair);
         }
-
-         // Note: No ImportFromBase64 overload taking a tokenUrl was present in the Java version.
-         // If needed, it could be added, but would require encoding the tokenUrl into the base64 string,
-         // which the current Principal.ExportToBase64 format doesn't support.
     }
-
-    // REMOVED Placeholder definitions if they existed here
-    // public class SignatureKeyPair { /* ... placeholder ... */ }
-    // public interface IAccount { /* ... placeholder ... */ }
 }
 

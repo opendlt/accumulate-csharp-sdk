@@ -158,19 +158,19 @@ namespace Acme.Net.Sdk.Protocol
         /// </summary>
         /// <param name="publicKey">The public key bytes.</param>
         /// <returns>The computed <see cref="Url"/>.</returns>
-        protected static Url ComputeUrl(byte[] publicKey)
+        public static Url ComputeUrl(byte[] publicKey)
         {
             return ComputeUrl(publicKey, null);
         }
 
         /// <summary>
-        /// Computes a lite identity URL from a public key, optionally merging with another URL's authority.
+        /// Computes a lite identity URL from a public key, optionally merging with another URL.
         /// </summary>
         /// <param name="publicKey">The public key bytes.</param>
         /// <param name="mergeUrl">An optional URL whose authority should be appended.</param>
         /// <returns>The computed <see cref="Url"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown if publicKey is null.</exception>
-        protected static Url ComputeUrl(byte[] publicKey, Url? mergeUrl)
+        public static Url ComputeUrl(byte[] publicKey, Url? mergeUrl)
         {
              if (publicKey == null) throw new ArgumentNullException(nameof(publicKey));
 
@@ -187,9 +187,9 @@ namespace Acme.Net.Sdk.Protocol
             var urlBuilder = new StringBuilder("acc://").Append(pkHash).Append(checkSumStr);
             if (mergeUrl != null)
             {
-                // Ensure leading slash if authority has one? Java Authority() likely includes port.
-                // Url.Authority property in C# matches Java behavior.
-                urlBuilder.Append('/').Append(mergeUrl.Authority);
+                // In Java, the authority() method returns the URI.getHost(), not the Authority property
+                // This is why we need to use HostName instead of Authority
+                urlBuilder.Append('/').Append(mergeUrl.HostName);
             }
             
             // Use Url.Parse which handles acc:// prefixing if needed (though already added here)

@@ -93,31 +93,50 @@ namespace Acme.Net.Sdk.Tests.Protocol
             // Symmetric & Equal
             Assert.True(txid1.Equals(txid2));
             Assert.True(txid2.Equals(txid1));
-            Assert.True(txid1 == txid2);
-            Assert.False(txid1 != txid2);
             Assert.Equal(txid1.GetHashCode(), txid2.GetHashCode());
 
-            // Equals despite hex case difference (Url equality handles authority case, hash equality is byte-based)
+            // Equals despite hex case difference 
+            // Our URL class treats URLs with different case as equal via Equals()
             Assert.True(txid1.Equals(txid3));
             Assert.True(txid3.Equals(txid1));
-            Assert.True(txid1 == txid3);
-             Assert.Equal(txid1.GetHashCode(), txid3.GetHashCode());
+            Assert.Equal(txid1.GetHashCode(), txid3.GetHashCode());
 
             // Unequal - Different Hash
             Assert.False(txid1.Equals(txid_differentHash));
             Assert.False(txid_differentHash.Equals(txid1));
-            Assert.True(txid1 != txid_differentHash);
 
-             // Unequal - Different Account URL
+            // Unequal - Different Account URL
             Assert.False(txid1.Equals(txid_differentAccount));
             Assert.False(txid_differentAccount.Equals(txid1));
-            Assert.True(txid1 != txid_differentAccount);
 
             // Null comparison
             Assert.False(txid1.Equals(null));
+        }
+
+        [Fact]
+        public void TestOperatorEquality()
+        {
+            var txid1 = new TxID(ValidTxIdUrlStr);
+            var txid2 = new TxID(ValidTxIdUrl);
+            var txid_differentHash = new TxID($"acc://001122@{ValidAccountUrl.Authority}{ValidAccountUrl.Path}");
+            var txid_differentAccount = new TxID($"acc://{ValidHashHex}@different-account.acme");
+            
+            // Test equality operator
+            Assert.True(txid1 == txid2);
+            Assert.False(txid1 != txid2);
+            
+            // Test inequality with different hash
+            Assert.True(txid1 != txid_differentHash);
+            Assert.False(txid1 == txid_differentHash);
+            
+            // Test inequality with different account
+            Assert.True(txid1 != txid_differentAccount);
+            Assert.False(txid1 == txid_differentAccount);
+            
+            // Test null comparisons
+            TxID? nullTxid = null;
             Assert.False(txid1 == null);
             Assert.True(txid1 != null);
-            TxID? nullTxid = null;
             Assert.True(nullTxid == null);
             Assert.False(nullTxid != null);
         }

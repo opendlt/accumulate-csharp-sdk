@@ -9,10 +9,21 @@ namespace Acme.Net.Sdk.Protocol
     /// </summary>
     public class UrlRegistry
     {
+        private static readonly UrlRegistry _instance = new UrlRegistry();
+        
         // Constant for the ACME token URL string
         private const string AcmeTokenUrlString = "acc://ACME";
         private static readonly Url _acmeTokenUrl = Url.Parse(AcmeTokenUrlString);
 
+        /// <summary>
+        /// Gets the singleton instance of the UrlRegistry.
+        /// </summary>
+        /// <returns>The singleton UrlRegistry instance.</returns>
+        public static UrlRegistry GetInstance()
+        {
+            return _instance;
+        }
+        
         /// <summary>
         /// Gets the predefined URL for the ACME token.
         /// </summary>

@@ -12,12 +12,11 @@ namespace Acme.Net.Sdk.Protocol
     /// </summary>
     public class LiteIdentityPrincipal : Principal
     {
-        // Internal placeholder for the LiteIdentity generated class
-        // Only needs to hold the URL to satisfy the base Principal constructor.
-        private class LiteIdentityPlaceholder : IAccount
-        {
-            public Url Url { get; internal set; } = null!; // Set by constructor logic
-        }
+        /// <summary>
+        /// Gets the Lite Identity Account associated with this principal.
+        /// </summary>
+        public LiteIdentity LiteIdentity => Account as LiteIdentity ?? 
+            throw new InvalidOperationException("Account is not a LiteIdentity");
 
         /// <summary>
         /// Initializes a new instance of the <see cref="LiteIdentityPrincipal"/> class from an existing key pair.
@@ -26,9 +25,17 @@ namespace Acme.Net.Sdk.Protocol
         /// <param name="keyPair">The key pair for this principal.</param>
         /// <exception cref="ArgumentNullException">Thrown if keyPair is null.</exception>
         public LiteIdentityPrincipal(Acme.Net.Sdk.Signing.SignatureKeyPair keyPair) 
-            : base(new LiteIdentityPlaceholder { Url = ComputeUrl(keyPair.GetPublicKey()) }, keyPair)
+            : base(CreateLiteIdentity(keyPair), keyPair)
         {
             // Base constructor handles null check for keyPair via its property access
+        }
+
+        // Helper method to create a LiteIdentity with computed URL
+        private static LiteIdentity CreateLiteIdentity(Acme.Net.Sdk.Signing.SignatureKeyPair keyPair)
+        {
+            if (keyPair == null) throw new ArgumentNullException(nameof(keyPair));
+            var url = ComputeUrl(keyPair.GetPublicKey());
+            return new LiteIdentity(url);
         }
 
         /// <summary>
@@ -58,8 +65,6 @@ namespace Acme.Net.Sdk.Protocol
             
             return new LiteIdentityPrincipal(keyPair);
         }
-
-        // Removed static generateWithKeypair as it was package-private and redundant with public constructor
 
         /// <summary>
         /// Exports the key pair associated with this principal to a base64 string, indicating Lite Identity type.

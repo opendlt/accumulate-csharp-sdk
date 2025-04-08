@@ -134,7 +134,7 @@ namespace Acme.Net.Sdk.Tests.Wallet
         public void Account_AddAndRemoveKeys_WorksCorrectly()
         {
             // Arrange
-            var account = new Account(new Url("acc://key-test.acme"), AccountType.TokenAccount);
+            var account = new Acme.Net.Sdk.Wallet.Account(new Url("acc://key-test.acme"), AccountType.TokenAccount);
             
             // Act & Assert - Add initial key
             var keyPair1 = CreateKeyPair();
@@ -221,6 +221,7 @@ namespace Acme.Net.Sdk.Tests.Wallet
                 _output.WriteLine($"  {Path.GetFileName(file)}");
             }
             
+            // Use await to ensure proper async execution
             var walletIds = await walletManager.ListWalletIdsAsync();
             
             // Assert
@@ -253,7 +254,7 @@ namespace Acme.Net.Sdk.Tests.Wallet
             _output.WriteLine($"Wallet file: {walletFilePath}, exists: {File.Exists(walletFilePath)}");
             _output.WriteLine($"Metadata file: {metadataFilePath}, exists: {File.Exists(metadataFilePath)}");
             
-            // Act
+            // Act - Use await to ensure proper async execution
             await walletManager.DeleteWalletAsync("temp-wallet");
             
             // Debug after deletion
@@ -269,7 +270,7 @@ namespace Acme.Net.Sdk.Tests.Wallet
         }
         
         [Fact]
-        public async Task WalletEncryption_EncryptAndDecrypt_WorksCorrectly()
+        public void WalletEncryption_EncryptAndDecrypt_WorksCorrectly()
         {
             // Arrange
             var encryptionService = new WalletEncryptionService();

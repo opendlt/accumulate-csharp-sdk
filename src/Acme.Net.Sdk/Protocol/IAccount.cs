@@ -2,17 +2,24 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using Acme.Net.Sdk.Protocol.Generated;
+using Acme.Net.Sdk.Support;
 
 namespace Acme.Net.Sdk.Protocol
 {
     /// <summary>
     /// Base interface for all Accumulate account types.
-    /// Defines the common property for an account's URL.
+    /// Defines the common properties and methods for an account.
     /// Handles polymorphic JSON deserialization based on the 'type' property.
     /// </summary>
     [JsonConverter(typeof(AccountConverter))] // Use a custom converter for polymorphic deserialization
-    public interface IAccount
+    public interface IAccount : IMarshallable
     {
+        /// <summary>
+        /// Gets the type of the account.
+        /// </summary>
+        AccountType Type { get; }
+
         /// <summary>
         /// Gets the URL of the account.
         /// </summary>
@@ -25,21 +32,22 @@ namespace Acme.Net.Sdk.Protocol
     public class AccountConverter : JsonConverter<IAccount>
     {
         // Dictionary to map 'type' string to the actual C# Type
-        // We will populate this map as we port the specific account classes (ADI, TokenAccount, etc.)
         private static readonly Dictionary<string, Type> TypeMapping = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
         {
-            // Example entries (will be replaced with actual types later):
+            // Register our implemented account types
+            { "liteTokenAccount", typeof(LiteTokenAccount) },
+            { "liteIdentity", typeof(LiteIdentity) },
+            
+            // These will be implemented later:
             // { "unknown", typeof(UnknownAccount) },
             // { "identity", typeof(ADI) },
             // { "tokenIssuer", typeof(TokenIssuer) },
             // { "tokenAccount", typeof(TokenAccount) },
-            // { "liteTokenAccount", typeof(LiteTokenAccount) },
             // { "keyPage", typeof(KeyPage) },
             // { "keyBook", typeof(KeyBook) },
             // { "dataAccount", typeof(DataAccount) },
             // { "liteDataAccount", typeof(LiteDataAccount) },
             // { "unknownSigner", typeof(UnknownSigner) },
-            // { "liteIdentity", typeof(LiteIdentity) }
         };
 
         // Disable writing JSON from the base interface converter; subtypes should handle their own serialization.
