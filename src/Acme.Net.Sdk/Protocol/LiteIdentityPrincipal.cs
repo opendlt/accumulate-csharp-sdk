@@ -58,11 +58,14 @@ namespace Acme.Net.Sdk.Protocol
             // Create a new key using NSec
             // Use CreationParameters with ExportPolicy = KeyExportPolicies.AllowPlaintextExport for GetPrivateKey()
             var creationParams = new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport };
-            using var key = Key.Create(algorithm, creationParams);
+            
+            // Remove the 'using' keyword here so the key is not disposed immediately
+            Key key = Key.Create(algorithm, creationParams);
 
-            // Create our SignatureKeyPair wrapper
+            // Create our SignatureKeyPair wrapper (it will hold the key)
             var keyPair = new Acme.Net.Sdk.Signing.SignatureKeyPair(key, signatureType);
             
+            // The LiteIdentityPrincipal constructor will store the keyPair
             return new LiteIdentityPrincipal(keyPair);
         }
 

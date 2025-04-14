@@ -38,8 +38,8 @@
   <ItemGroup>
     <!-- This assumes the submodule path is ../../test/vectors relative to this csproj file -->
     <!-- Adjust the path if your submodule is located differently -->
-    <Content Include="..\..\test\vectors\vectors.json">
-      <Link>vectors\vectors.json</Link> <!-- This places it in a 'vectors' subdirectory in the output -->
+    <Content Include="..\..\test\vectors\protocol.4.json">
+      <Link>vectors\protocol.4.json</Link> <!-- This places it in a 'vectors' subdirectory in the output -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

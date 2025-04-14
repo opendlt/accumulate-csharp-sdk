@@ -12,12 +12,12 @@ using Acme.Net.Sdk.Protocol.Generated.Protocol;
 namespace Acme.Net.Sdk.Tests.Protocol
 {
     /// <summary>
-    /// Provides access to test vectors from the submodule file `test/vectors/vectors.json`.
+    /// Provides access to test vectors from the submodule file `test/vectors/protocol.4.json`.
     /// </summary>
     public static class TestVectors
     {
         // Relative path to the vectors file within the submodule, copied to the output directory
-        private const string VECTORS_FILE_PATH = "vectors/vectors.json";
+        private const string VECTORS_FILE_PATH = "vectors/protocol.4.json";
 
         private static readonly Lazy<ProtocolTestVectors> _testVectors = new Lazy<ProtocolTestVectors>(() => LoadTestVectors());
 
@@ -45,7 +45,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
             {
                 // Provide more context if the file isn't found
                 string errorMessage = $"Could not find the test vectors file at {filePath}. " +
-                                       "Ensure the 'test/vectors' submodule is initialized and the file is copied to the output directory. " +
+                                       "Ensure the 'test/vectors' submodule is initialized and the file '{Path.GetFileName(VECTORS_FILE_PATH)}' exists and is copied to the output directory. " +
                                        "Check the .csproj file configuration.";
                 throw new FileNotFoundException(errorMessage, filePath);
             }
