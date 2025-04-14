@@ -1,0 +1,3 @@
+[submodule "test/vectors"]
+	path = test/vectors
+	url = https://gitlab.com/accumulatenetwork/sdk/test-data.git

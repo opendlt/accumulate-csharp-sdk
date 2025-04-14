@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using Acme.Net.Sdk.Commons.Codec.Binary;
 using Acme.Net.Sdk.Protocol;
@@ -11,10 +12,13 @@ using Acme.Net.Sdk.Protocol.Generated.Protocol;
 namespace Acme.Net.Sdk.Tests.Protocol
 {
     /// <summary>
-    /// Provides access to test vectors from the protocol.4.json file.
+    /// Provides access to test vectors from the submodule file `test/vectors/vectors.json`.
     /// </summary>
     public static class TestVectors
     {
+        // Relative path to the vectors file within the submodule, copied to the output directory
+        private const string VECTORS_FILE_PATH = "vectors/vectors.json";
+
         private static readonly Lazy<ProtocolTestVectors> _testVectors = new Lazy<ProtocolTestVectors>(() => LoadTestVectors());
 
         /// <summary>
@@ -24,38 +28,52 @@ namespace Acme.Net.Sdk.Tests.Protocol
 
         private static ProtocolTestVectors LoadTestVectors()
         {
-            // Use direct absolute path to the file
-            string filePath = "/home/bunfield/Software/sdk/acme.net/test-data/protocol.4.json";
-            
+            string assemblyLocation = Assembly.GetExecutingAssembly().Location;
+            string? assemblyDirectory = Path.GetDirectoryName(assemblyLocation);
+
+            if (string.IsNullOrEmpty(assemblyDirectory))
+            {
+                throw new InvalidOperationException("Could not determine the test assembly directory.");
+            }
+
+            // Combine the assembly directory with the relative path to the vectors file
+            string filePath = Path.Combine(assemblyDirectory, VECTORS_FILE_PATH);
+
+            Console.WriteLine($"Attempting to load test vectors from: {filePath}");
+
             if (!File.Exists(filePath))
             {
-                throw new FileNotFoundException($"Could not find protocol.4.json at {filePath}");
+                // Provide more context if the file isn't found
+                string errorMessage = $"Could not find the test vectors file at {filePath}. " +
+                                       "Ensure the 'test/vectors' submodule is initialized and the file is copied to the output directory. " +
+                                       "Check the .csproj file configuration.";
+                throw new FileNotFoundException(errorMessage, filePath);
             }
-            
+
             string jsonContent = File.ReadAllText(filePath);
             Console.WriteLine($"Read {jsonContent.Length} bytes from {filePath}");
-            
+
             try
             {
                 var result = JsonSerializer.Deserialize<ProtocolTestVectors>(jsonContent,
                     new JsonSerializerOptions
                     {
-                        PropertyNameCaseInsensitive = true,
+                        PropertyNameCaseInsensitive = true, // Keep case-insensitive for robustness
                         AllowTrailingCommas = true
                     });
-                
+
                 if (result == null)
                 {
-                    throw new InvalidOperationException("Failed to deserialize test vectors");
+                    throw new InvalidOperationException("Failed to deserialize test vectors from JSON file.");
                 }
-                
-                Console.WriteLine($"Deserialized {result.Transactions.Count} transaction groups");
+
+                Console.WriteLine($"Successfully deserialized {result.Transactions.Count} transaction groups from {filePath}");
                 return result;
             }
             catch (JsonException ex)
             {
-                Console.WriteLine($"Error parsing test vectors: {ex.Message}");
-                throw new InvalidOperationException($"Error parsing test vectors: {ex.Message}", ex);
+                Console.WriteLine($"Error parsing test vectors JSON from {filePath}: {ex.Message}");
+                throw new InvalidOperationException($"Error parsing test vectors JSON from {filePath}: {ex.Message}", ex);
             }
         }
     }
@@ -248,44 +266,55 @@ namespace Acme.Net.Sdk.Tests.Protocol
                 // These transaction types are not yet implemented in the SDK
                 case "createdataaccount":
                 case "createidentity":
-                case "syntheticwritedata":
-                    throw new NotSupportedException($"Transaction type '{bodyType}' is not yet implemented in the SDK");
-
+                case "createtoken":
+                case "issuecredits": // Assuming this corresponds to AddCredits
+                case "createtokenissuer": // Assuming this corresponds to CreateToken
+                case "createkeybook":
+                case "createkeypage":
+                case "updatekeypage":
+                case "addkeypageoperation":
+                case "removekeypageoperation":
+                case "updatekeypageoperation":
+                case "setkeypageoperationthreshold":
+                case "updatetokenissuer":
+                case "issuetokens":
+                    // Log or throw a specific "not implemented in test parser" error
+                    // Console.WriteLine($"Warning: Test case parser for type '{bodyType}' not implemented.");
+                     throw new NotSupportedException($"Test case parser for type '{bodyType}' not implemented.");
+                    // tx.Body = null; // Or assign a placeholder if needed
+                    // break;
                 default:
-                    throw new NotSupportedException($"Transaction type '{bodyType}' is not supported");
+                     throw new NotSupportedException($"Unsupported transaction body type in test vector: {bodyType}");
             }
 
             return tx;
         }
-
+        
         /// <summary>
-        /// Gets the expected transaction hash for a test case.
+        /// Gets the expected transaction hash from the signature block of the test case.
         /// </summary>
         public static byte[] GetExpectedTransactionHash(this TransactionTestCase testCase)
         {
-            if (testCase.Json.Signatures.Count == 0)
-                throw new ArgumentException("No signatures found in test case");
-
-            // Find the proper signature that contains the transaction hash
-            var signature = testCase.Json.Signatures[0];
-            
-            // Make sure we have a transaction hash
-            if (string.IsNullOrEmpty(signature.TransactionHash))
-                throw new ArgumentException("No transaction hash found in signature");
-
-            return Hex.DecodeHex(signature.TransactionHash);
+            // Find the first signature that has a TransactionHash
+            var signatureWithHash = testCase.Json.Signatures.FirstOrDefault(s => !string.IsNullOrEmpty(s.TransactionHash));
+            if (signatureWithHash != null)
+            {
+                return Hex.DecodeHex(signatureWithHash.TransactionHash);
+            }
+            // Fallback or throw if no hash is found (should not happen for valid vectors)
+             throw new InvalidOperationException("No signature with a TransactionHash found in the test case.");
         }
 
         /// <summary>
-        /// Gets the expected initiator hash for a test case.
+        /// Gets the expected initiator hash from the header of the test case.
         /// </summary>
         public static byte[] GetExpectedInitiatorHash(this TransactionTestCase testCase)
         {
-            if (testCase.Json.Transaction.Count == 0)
-                throw new ArgumentException("No transaction data found in test case");
-
-            string initiatorHashHex = testCase.Json.Transaction[0].Header.Initiator;
-            return Hex.DecodeHex(initiatorHashHex);
+            if (testCase.Json.Transaction.Count > 0 && !string.IsNullOrEmpty(testCase.Json.Transaction[0].Header.Initiator))
+            {
+                return Hex.DecodeHex(testCase.Json.Transaction[0].Header.Initiator);
+            }
+             throw new InvalidOperationException("No initiator hash found in the test case header.");
         }
     }
 } 
