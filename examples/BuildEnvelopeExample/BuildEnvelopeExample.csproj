@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework> <!-- Match the SDK's target framework -->
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>BuildEnvelopeExample</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference the main SDK project -->
+    <!-- Adjust the path if your directory structure is different -->
+    <ProjectReference Include="..\..\src\Acme.Net.Sdk\Acme.Net.Sdk.csproj" />
+  </ItemGroup>
+
+</Project> 

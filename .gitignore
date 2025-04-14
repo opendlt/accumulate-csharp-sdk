@@ -1,2 +1,2 @@
-test/Acme.Net.Sdk.Tests/obj/**
-test/Acme.Net.Sdk.Tests/bin/**
+**/obj/**
+**/bin/**
