@@ -30,8 +30,6 @@ namespace Acme.Net.Sdk.Protocol
             if (reader.TokenType == JsonToken.Null)
                 return null;
 
-            // TODO: Uncomment this when Generated.Protocol types are available
-            /*
             var jObject = Newtonsoft.Json.Linq.JObject.Load(reader);
             var typeProperty = jObject["type"]?.ToString();
 
@@ -51,28 +49,25 @@ namespace Acme.Net.Sdk.Protocol
                 "createKeyBook" => new Generated.Protocol.CreateKeyBook(),
                 "addCredits" => new Generated.Protocol.AddCredits(),
                 "updateKeyPage" => new Generated.Protocol.UpdateKeyPage(),
-                "updateAccountAuth" => new Generated.Protocol.UpdateAccountAuth(),
-                "updateKey" => new Generated.Protocol.UpdateKey(),
+                //"updateAccountAuth" => new Generated.Protocol.UpdateAccountAuth(),
+                //"updateKey" => new Generated.Protocol.UpdateKey(),
                 "remote" => new Generated.Protocol.RemoteTransaction(),
+                "signPending" => new Generated.Protocol.RemoteTransaction(), // signPending uses Remote type
                 "syntheticCreateIdentity" => new Generated.Protocol.SyntheticCreateIdentity(),
                 "syntheticWriteData" => new Generated.Protocol.SyntheticWriteData(),
                 "syntheticDepositTokens" => new Generated.Protocol.SyntheticDepositTokens(),
                 "syntheticDepositCredits" => new Generated.Protocol.SyntheticDepositCredits(),
                 "syntheticBurnTokens" => new Generated.Protocol.SyntheticBurnTokens(),
-                "syntheticForwardTransaction" => new Generated.Protocol.SyntheticForwardTransaction(),
-                "systemGenesis" => new Generated.Protocol.SystemGenesis(),
-                "systemWriteData" => new Generated.Protocol.SystemWriteData(),
-                "blockValidatorAnchor" => new Generated.Protocol.BlockValidatorAnchor(),
-                "directoryAnchor" => new Generated.Protocol.DirectoryAnchor(),
+                //"syntheticForwardTransaction" => new Generated.Protocol.SyntheticForwardTransaction(),
+                //"systemGenesis" => new Generated.Protocol.SystemGenesis(),
+                //"systemWriteData" => new Generated.Protocol.SystemWriteData(),
+                //"blockValidatorAnchor" => new Generated.Protocol.BlockValidatorAnchor(),
+                //"directoryAnchor" => new Generated.Protocol.DirectoryAnchor(),
                 _ => throw new JsonSerializationException($"Unknown transaction body type: {typeProperty}")
             };
 
             serializer.Populate(jObject.CreateReader(), transactionBody);
             return transactionBody;
-            */
-
-            // Temporary implementation until Generated.Protocol types are available
-            throw new System.NotImplementedException("Transaction body deserialization not implemented yet");
         }
 
         public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)

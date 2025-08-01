@@ -143,7 +143,7 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
                 marshaller.WriteValue(4, EntryHash);
             }
             
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 

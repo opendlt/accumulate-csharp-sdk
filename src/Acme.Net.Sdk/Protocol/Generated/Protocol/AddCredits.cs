@@ -100,31 +100,35 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
 
-            // Marshal recipient URL
+            // Marshal type as field 1
+            marshaller.WriteUInt(1, TransactionTypeCode.AddCredits);
+
+            // Marshal recipient URL as field 2
             if (Recipient != null)
             {
-                marshaller.WriteValue(1, Recipient);
+                marshaller.WriteValue(2, Recipient);
             }
 
-            // Marshal amount - convert to byte array directly
+            // Marshal amount as field 3 - convert to byte array directly
             if (Amount > BigInteger.Zero)
             {
                 byte[] amountBytes = Amount.ToByteArray();
-                marshaller.WriteBytes(2, amountBytes);
+                marshaller.WriteBytes(3, amountBytes);
             }
             else
             {
                 // Write empty byte array for zero
-                marshaller.WriteBytes(2, new byte[] { 0 });
+                marshaller.WriteBytes(3, new byte[] { 0 });
             }
 
-            // Marshal oracle if present
+            // Marshal oracle as field 4 if present
+            // Note: The JavaScript SDK shows this as uint, but we're using string
             if (!string.IsNullOrEmpty(Oracle))
             {
-                marshaller.WriteString(3, Oracle);
+                marshaller.WriteString(4, Oracle);
             }
 
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 

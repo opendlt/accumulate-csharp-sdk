@@ -142,16 +142,20 @@ namespace AcmeComplexExample
                 var createDataAccountBody = new CreateDataAccount()
                     .WithUrl(new Url(dataAccountUrl));
                 
-                var envelope = new EnvelopeBuilder()
-                    .AddTransaction(new Transaction()
-                        .WithHeader(new TransactionHeader()
-                            .WithPrincipal(principal.LiteIdentity.Url))
-                        .WithBody(createDataAccountBody))
-                    .Build();
+                // Create the transaction
+                var transaction = new Transaction()
+                    .WithHeader(new TransactionHeader()
+                        .WithPrincipal(principal.LiteIdentity.Url))
+                    .WithBody(createDataAccountBody);
                 
-                // Sign the transaction
-                var signature = principal.SignatureKeyPair.Sign(envelope.GetTransactionHash());
-                envelope.AddSignature(signature);
+                // Sign the transaction using the principal
+                var signature = principal.Initiate(transaction);
+                
+                // Build the envelope with the transaction and signature
+                var envelope = new EnvelopeBuilder()
+                    .AddTransaction(transaction)
+                    .AddSignature(signature)
+                    .Build();
                 
                 var response = await accountsClient.ExecuteAsync(envelope);
                 

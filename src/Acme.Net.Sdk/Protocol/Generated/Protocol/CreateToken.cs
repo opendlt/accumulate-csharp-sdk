@@ -134,34 +134,40 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
 
-            // Marshal URL
+            // Marshal type as field 1
+            marshaller.WriteUInt(1, TransactionTypeCode.CreateToken);
+
+            // Marshal URL as field 2
             if (Url != null)
             {
-                marshaller.WriteValue(1, Url);
+                marshaller.WriteValue(2, Url);
             }
 
-            // Marshal symbol
+            // Marshal symbol as field 4 (skips field 3)
             if (!string.IsNullOrEmpty(Symbol))
             {
-                marshaller.WriteString(2, Symbol);
+                marshaller.WriteString(4, Symbol);
             }
 
-            // Marshal precision
-            marshaller.WriteInt(3, Precision);
+            // Marshal precision as field 5
+            marshaller.WriteInt(5, Precision);
 
-            // Marshal supply limit if present
-            if (SupplyLimit.HasValue)
-            {
-                marshaller.WriteUInt(4, SupplyLimit.Value);
-            }
-
-            // Marshal properties if present
+            // Marshal properties as field 6 if present
+            // Note: In JavaScript this is a URL, but we're using JToken/string
             if (Properties != null)
             {
-                marshaller.WriteString(5, Properties.ToString());
+                marshaller.WriteString(6, Properties.ToString());
             }
 
-            return marshaller.ToArray();
+            // Marshal supply limit as field 7 if present
+            if (SupplyLimit.HasValue)
+            {
+                marshaller.WriteUInt(7, SupplyLimit.Value);
+            }
+
+            // Note: Field 9 would be authorities (repeatable URL array) but not implemented yet
+
+            return marshaller.GetBytes();
         }
     }
 } 

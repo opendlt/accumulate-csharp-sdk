@@ -144,30 +144,37 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Marshal recipient if present
+            // Marshal type as field 1
+            marshaller.WriteUInt(1, TransactionTypeCode.IssueTokens);
+            
+            // Marshal recipient as field 2 if present
             if (Recipient != null)
             {
-                marshaller.WriteValue(1, Recipient);
+                marshaller.WriteValue(2, Recipient);
             }
             
-            // Marshal amount
+            // Marshal amount as field 3
             if (Amount != BigInteger.Zero)
             {
                 byte[] amountBytes = Amount.ToByteArray();
-                marshaller.WriteBytes(2, amountBytes);
+                marshaller.WriteBytes(3, amountBytes);
             }
             
-            // Marshal recipients if present
+            // Marshal recipients as field 4 if present (array of TokenRecipient)
+            // Note: In the JavaScript SDK, this is a repeatable field with nested structure
             if (Recipients != null && Recipients.Count > 0)
             {
                 foreach (var recipient in Recipients)
                 {
-                    marshaller.WriteValue(3, recipient.Url);
-                    marshaller.WriteUInt(4, recipient.Amount);
+                    // Each recipient is marshalled as field 4 with nested fields
+                    var recipientMarshaller = new Marshaller();
+                    recipientMarshaller.WriteValue(1, recipient.Url);
+                    recipientMarshaller.WriteUInt(2, recipient.Amount);
+                    marshaller.WriteBytes(4, recipientMarshaller.GetBytes());
                 }
             }
             
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 

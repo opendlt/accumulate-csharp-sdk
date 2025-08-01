@@ -166,6 +166,12 @@ namespace Acme.Net.Sdk.Tests.Protocol
                     .WithPrincipal(new Url(txData.Header.Principal))
             };
             
+            // Set initiator hash if present
+            if (!string.IsNullOrEmpty(txData.Header.Initiator))
+            {
+                tx.Header.WithInitiator(Hex.DecodeHex(txData.Header.Initiator));
+            }
+            
             // Get the reference hash from the signature if available
             if (testCase.Json.Signatures.Count > 0 && !string.IsNullOrEmpty(testCase.Json.Signatures[0].TransactionHash))
             {
@@ -263,26 +269,144 @@ namespace Acme.Net.Sdk.Tests.Protocol
                     tx.Body = writeDataTo;
                     break;
 
-                // These transaction types are not yet implemented in the SDK
-                case "createdataaccount":
                 case "createidentity":
+                    var createIdentity = new CreateIdentity();
+                    if (txData.Body.TryGetProperty("url", out var identityUrl))
+                        createIdentity.WithUrl(new Url(identityUrl.GetString() ?? string.Empty));
+                    if (txData.Body.TryGetProperty("keyHash", out var keyHash))
+                    {
+                        var keyHashStr = keyHash.GetString() ?? string.Empty;
+                        createIdentity.WithKeyHash(Hex.DecodeHex(keyHashStr));
+                    }
+                    if (txData.Body.TryGetProperty("keyBookUrl", out var keyBookUrl))
+                        createIdentity.WithKeyBookUrl(new Url(keyBookUrl.GetString() ?? string.Empty));
+                    tx.Body = createIdentity;
+                    break;
+
+                case "createdataaccount":
+                    var createDataAccount = new CreateDataAccount();
+                    if (txData.Body.TryGetProperty("url", out var dataAccountUrl))
+                        createDataAccount.WithUrl(new Url(dataAccountUrl.GetString() ?? string.Empty));
+                    tx.Body = createDataAccount;
+                    break;
+
+                case "acmefaucet":
+                    var acmeFaucet = new AcmeFaucet();
+                    if (txData.Body.TryGetProperty("url", out var faucetUrl))
+                        acmeFaucet.WithUrl(new Url(faucetUrl.GetString() ?? string.Empty));
+                    tx.Body = acmeFaucet;
+                    break;
+
                 case "createtoken":
-                case "issuecredits": // Assuming this corresponds to AddCredits
-                case "createtokenissuer": // Assuming this corresponds to CreateToken
-                case "createkeybook":
+                case "createtokenissuer":
+                    var createToken = new CreateToken();
+                    if (txData.Body.TryGetProperty("url", out var createTokenUrl))
+                        createToken.WithUrl(new Url(createTokenUrl.GetString() ?? string.Empty));
+                    if (txData.Body.TryGetProperty("symbol", out var symbol))
+                        createToken.WithSymbol(symbol.GetString() ?? string.Empty);
+                    if (txData.Body.TryGetProperty("precision", out var precision))
+                        createToken.WithPrecision(precision.GetInt32());
+                    if (txData.Body.TryGetProperty("supplyLimit", out var supplyLimit))
+                        createToken.WithSupplyLimit(supplyLimit.GetUInt64());
+                    tx.Body = createToken;
+                    break;
+
+                case "issuetokens":
+                    var issueTokens = new IssueTokens();
+                    if (txData.Body.TryGetProperty("recipient", out var issueRecipient))
+                        issueTokens.WithRecipient(new Url(issueRecipient.GetString() ?? string.Empty));
+                    if (txData.Body.TryGetProperty("amount", out var issueAmount) && issueAmount.GetString() is string issueAmountStr)
+                    {
+                        var amountBigInt = System.Numerics.BigInteger.Parse(issueAmountStr);
+                        issueTokens.WithAmount(amountBigInt);
+                    }
+                    tx.Body = issueTokens;
+                    break;
+
+                case "burntokens":
+                    var burnTokens = new BurnTokens();
+                    if (txData.Body.TryGetProperty("amount", out var burnAmount) && burnAmount.GetString() is string burnAmountStr)
+                        burnTokens.WithAmount(burnAmountStr);
+                    tx.Body = burnTokens;
+                    break;
+
+                case "addcredits":
+                case "issuecredits":
+                    var addCredits = new AddCredits();
+                    if (txData.Body.TryGetProperty("recipient", out var creditsRecipient))
+                        addCredits.WithRecipient(new Url(creditsRecipient.GetString() ?? string.Empty));
+                    if (txData.Body.TryGetProperty("amount", out var creditsAmount) && creditsAmount.GetString() is string creditsAmountStr)
+                    {
+                        var creditsBigInt = System.Numerics.BigInteger.Parse(creditsAmountStr);
+                        addCredits.WithAmount(creditsBigInt);
+                    }
+                    if (txData.Body.TryGetProperty("oracle", out var oracle))
+                    {
+                        if (oracle.ValueKind == JsonValueKind.Number)
+                            addCredits.WithOracle(oracle.GetInt64().ToString());
+                        else
+                            addCredits.WithOracle(oracle.GetString() ?? string.Empty);
+                    }
+                    tx.Body = addCredits;
+                    break;
+
                 case "createkeypage":
+                    var createKeyPage = new CreateKeyPage();
+                    if (txData.Body.TryGetProperty("keys", out var keys) && keys.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var key in keys.EnumerateArray())
+                        {
+                            if (key.TryGetProperty("publicKeyHash", out var pubKeyHash))
+                            {
+                                var keyHashBytes = Hex.DecodeHex(pubKeyHash.GetString() ?? string.Empty);
+                                createKeyPage.AddKey(keyHashBytes);
+                            }
+                        }
+                    }
+                    tx.Body = createKeyPage;
+                    break;
+
+                case "createkeybook":
+                    var createKeyBook = new CreateKeyBook();
+                    if (txData.Body.TryGetProperty("url", out var keyBookUrlProp))
+                        createKeyBook.WithUrl(new Url(keyBookUrlProp.GetString() ?? string.Empty));
+                    tx.Body = createKeyBook;
+                    break;
+
                 case "updatekeypage":
+                    var updateKeyPage = new UpdateKeyPage();
+                    // TODO: Parse operations
+                    tx.Body = updateKeyPage;
+                    break;
+
+                case "remote":
+                case "signpending":
+                    var remoteTransaction = new RemoteTransaction();
+                    if (txData.Body.TryGetProperty("hash", out var txHash))
+                    {
+                        var hashBytes = Hex.DecodeHex(txHash.GetString() ?? string.Empty);
+                        remoteTransaction.WithHash(hashBytes);
+                    }
+                    tx.Body = remoteTransaction;
+                    break;
+
+                // Synthetic transactions
+                case "syntheticcreateidentity":
+                case "syntheticwritedata":
+                case "syntheticdeposittokens":
+                case "syntheticdepositcredits":
+                case "syntheticburntokens":
+                    // These are synthetic transactions - skip for now as they're not in regular test vectors
+                    throw new NotSupportedException($"Synthetic transaction type '{bodyType}' not supported in test parser.");
+
+                // These transaction types are still not implemented
                 case "addkeypageoperation":
                 case "removekeypageoperation":
                 case "updatekeypageoperation":
                 case "setkeypageoperationthreshold":
                 case "updatetokenissuer":
-                case "issuetokens":
-                    // Log or throw a specific "not implemented in test parser" error
-                    // Console.WriteLine($"Warning: Test case parser for type '{bodyType}' not implemented.");
-                     throw new NotSupportedException($"Test case parser for type '{bodyType}' not implemented.");
-                    // tx.Body = null; // Or assign a placeholder if needed
-                    // break;
+                    throw new NotSupportedException($"Test case parser for type '{bodyType}' not fully implemented.");
+
                 default:
                      throw new NotSupportedException($"Unsupported transaction body type in test vector: {bodyType}");
             }
@@ -301,8 +425,17 @@ namespace Acme.Net.Sdk.Tests.Protocol
             {
                 return Hex.DecodeHex(signatureWithHash.TransactionHash);
             }
+            // For SignPending/Remote transactions without a hash, return empty array
+            if (testCase.Json.Transaction.Count > 0)
+            {
+                var bodyType = testCase.Json.Transaction[0].Body.GetProperty("type").GetString() ?? string.Empty;
+                if (bodyType.ToLowerInvariant() == "remote" || bodyType.ToLowerInvariant() == "signpending")
+                {
+                    return new byte[0]; // These may not have transaction hashes in test vectors
+                }
+            }
             // Fallback or throw if no hash is found (should not happen for valid vectors)
-             throw new InvalidOperationException("No signature with a TransactionHash found in the test case.");
+            throw new InvalidOperationException("No signature with a TransactionHash found in the test case.");
         }
 
         /// <summary>

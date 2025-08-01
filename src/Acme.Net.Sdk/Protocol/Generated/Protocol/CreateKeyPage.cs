@@ -99,22 +99,28 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Marshal Url if present
-            if (Url != null)
-            {
-                marshaller.WriteValue(1, Url);
-            }
+            // Marshal type as field 1
+            marshaller.WriteUInt(1, TransactionTypeCode.CreateKeyPage);
             
-            // Marshal Keys
+            // Note: URL is not in the JavaScript SDK structure for CreateKeyPage
+            
+            // Marshal Keys as field 2
+            // In JavaScript SDK, this is repeatable KeySpecParams with:
+            // - Field 1: keyHash (bytes)
+            // - Field 2: delegate (URL) - optional
             if (Keys.Count > 0)
             {
                 foreach (var key in Keys)
                 {
-                    marshaller.WriteValue(2, key);
+                    // For now, we're just marshalling the key hash directly
+                    // TODO: Implement KeySpecParams structure if needed
+                    var keySpecMarshaller = new Marshaller();
+                    keySpecMarshaller.WriteValue(1, key);
+                    marshaller.WriteBytes(2, keySpecMarshaller.GetBytes());
                 }
             }
             
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 

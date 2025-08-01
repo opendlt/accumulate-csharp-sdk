@@ -177,16 +177,17 @@ namespace Acme.Net.Sdk.Signing
             // Prepare the signature (for initiation, so pass true)
             var signature = Prepare(true);
             
-            // Compute transaction hash
-            byte[] txHash = TransactionHasher.ComputeTransactionHash(transaction);
-            
             // Get metadata hash based on init mode
             byte[] metadataHash = GetMetadataHash(signature);
             
             // Set the initiator hash on the transaction header
             transaction.Header.Initiator = metadataHash;
             
-            // Sign the transaction
+            // NOW compute transaction hash AFTER setting initiator
+            // Force computation - don't use reference hash
+            byte[] txHash = TransactionHasher.ComputeRawHash(transaction);
+            
+            // Sign the transaction hash
             signature.Sign(txHash, metadataHash, _keyPair!);
             
             return signature;

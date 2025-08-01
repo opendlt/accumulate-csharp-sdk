@@ -70,7 +70,10 @@ namespace Acme.Net.Sdk.Signing
         {
             var builder = new HashBuilder();
             
-            // First add public key (matches Java implementation order)
+            // Add signature type first
+            builder.AddUInt((ulong)Type);
+            
+            // Then add public key
             if (PublicKey.Length > 0)
             {
                 builder.AddBytes(PublicKey);
@@ -82,10 +85,10 @@ namespace Acme.Net.Sdk.Signing
                 builder.AddUrl(SignerUrl);
             }
             
-            // Then add version using AddUInt (matches Java addUInt)
+            // Then add version using AddUInt
             builder.AddUInt(Version);
             
-            // Then add timestamp using AddUInt (matches Java addUInt)
+            // Then add timestamp using AddUInt
             builder.AddUInt(Timestamp);
             
             return builder;

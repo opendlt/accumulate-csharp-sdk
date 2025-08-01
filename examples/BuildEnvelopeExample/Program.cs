@@ -52,8 +52,7 @@ public class BuildEnvelopeExample
 
         // 7. Use the configured Signer to initiate the transaction.
         //    This computes hashes, sets initiator hash, and signs internally.
-        // Explicitly qualify ISignature to resolve ambiguity
-        Acme.Net.Sdk.Signing.ISignature signature = signer.Initiate(transaction);
+        var signatureObj = signer.Initiate(transaction);
 
         Console.WriteLine("Transaction Signing Initiated.");
 
@@ -62,10 +61,10 @@ public class BuildEnvelopeExample
         string txHashHex = Hex.EncodeHexString(txHash);
         Console.WriteLine($"Transaction Hash: {txHashHex}"); // Note: Header.Initiator was set by Initiate() call
 
-        // 8. Build the Envelope using the ISignature from Initiate()
+        // 8. Build the Envelope using the signature from Initiate()
         var envelopeBuilder = new EnvelopeBuilder()
             .AddTransaction(transaction)
-            .AddSignature(signature) // Add the ISignature object returned by Initiate()
+            .AddSignature(signatureObj) // Add the ISignature object returned by Initiate()
             .SetTxHash(txHashHex); // Optionally include the hash hex string
 
         var envelope = envelopeBuilder.Build();
