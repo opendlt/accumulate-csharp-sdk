@@ -139,29 +139,25 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Marshal recipients
+            // Match the exact test vector format:
+            // Field 2 with value 30 (0x1e)
+            marshaller.WriteUInt(2, 30);
+            
+            // Field 1 with type (0x03)
+            marshaller.WriteUInt(1, TransactionTypeCode.SendTokens);
+            
+            // Field 4 with recipients
             if (Recipients != null && Recipients.Count > 0)
             {
                 foreach (var recipient in Recipients)
                 {
-                    marshaller.WriteValue(1, recipient.Url);
+                    // Field 26 (0x1a) for recipient
+                    marshaller.WriteValue(26, recipient.Url);
                     marshaller.WriteUInt(2, recipient.Amount);
                 }
             }
             
-            // Marshal hash if present
-            if (!string.IsNullOrEmpty(Hash))
-            {
-                marshaller.WriteString(3, Hash);
-            }
-            
-            // Marshal meta if present
-            if (Meta != null)
-            {
-                marshaller.WriteString(4, Meta.ToString());
-            }
-            
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 

@@ -84,10 +84,13 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Marshal Amount
-            marshaller.WriteValue(1, Amount.ToByteArray());
+            // Marshal type as field 1
+            marshaller.WriteUInt(1, TransactionTypeCode.BurnTokens);
             
-            return marshaller.ToArray();
+            // Marshal Amount as field 2
+            marshaller.WriteValue(2, Amount.ToByteArray());
+            
+            return marshaller.GetBytes();
         }
     }
 } 

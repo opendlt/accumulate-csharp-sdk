@@ -107,7 +107,7 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
                 marshaller.WriteValue(3, EntryHash);
             }
             
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 

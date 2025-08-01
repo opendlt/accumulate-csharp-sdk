@@ -111,13 +111,21 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Marshal Url if present
+            // Marshal type as field 1
+            marshaller.WriteUInt(1, TransactionTypeCode.CreateKeyBook);
+            
+            // Marshal Url as field 2 if present
             if (Url != null)
             {
-                marshaller.WriteValue(1, Url);
+                marshaller.WriteValue(2, Url);
             }
             
-            // Marshal Pages
+            // Note: Field 3 would be publicKeyHash (bytes) but not implemented
+            
+            // Note: Field 5 would be authorities (repeatable URL array) but not implemented
+            
+            // Marshal Pages - this might be a different field or part of authorities
+            // TODO: Verify the correct field number for Pages
             if (Pages.Count > 0)
             {
                 foreach (var page in Pages)
@@ -126,7 +134,7 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
                 }
             }
             
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 

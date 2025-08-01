@@ -113,25 +113,28 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Marshal Url if present
+            // Marshal type as field 1 - value 2 for CreateTokenAccount
+            marshaller.WriteUInt(1, TransactionTypeCode.CreateTokenAccount);
+            
+            // Marshal Url as field 2 if present
             if (Url != null)
             {
-                marshaller.WriteValue(1, Url);
+                marshaller.WriteValue(2, Url);
             }
             
-            // Marshal TokenUrl if present
+            // Marshal TokenUrl as field 3 if present
             if (TokenUrl != null)
             {
-                marshaller.WriteValue(2, TokenUrl);
+                marshaller.WriteValue(3, TokenUrl);
             }
             
-            // Marshal KeyBookUrl if present
+            // Marshal KeyBookUrl as field 7 if present
             if (KeyBookUrl != null)
             {
-                marshaller.WriteValue(3, KeyBookUrl);
+                marshaller.WriteValue(7, KeyBookUrl);
             }
             
-            return marshaller.ToArray();
+            return marshaller.GetBytes();
         }
     }
 } 
