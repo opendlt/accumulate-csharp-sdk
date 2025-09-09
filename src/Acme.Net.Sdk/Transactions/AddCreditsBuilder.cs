@@ -13,7 +13,7 @@ namespace Acme.Net.Sdk.Transactions
     {
         private Url? _recipient;
         private BigInteger _amount = BigInteger.Zero;
-        private string? _oracle;
+        private ulong _oracle;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AddCreditsBuilder"/> class.
@@ -78,9 +78,9 @@ namespace Acme.Net.Sdk.Transactions
         /// <param name="oracle">The oracle signature.</param>
         /// <returns>This builder for method chaining.</returns>
         /// <exception cref="ArgumentNullException">Thrown if oracle is null or empty.</exception>
-        public AddCreditsBuilder WithOracle(string oracle)
+        public AddCreditsBuilder WithOracle(ulong oracle)
         {
-            _oracle = oracle ?? throw new ArgumentNullException(nameof(oracle));
+            _oracle = oracle;
             return this;
         }
 
@@ -113,7 +113,7 @@ namespace Acme.Net.Sdk.Transactions
             addCredits.WithAmount(_amount);
             
             // Set oracle if specified
-            if (!string.IsNullOrEmpty(_oracle))
+            if (_oracle > 0)
             {
                 addCredits.WithOracle(_oracle);
             }

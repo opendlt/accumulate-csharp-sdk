@@ -1,5 +1,6 @@
 using System;
 using Newtonsoft.Json;
+using Acme.Net.Sdk.Protocol;
 using Acme.Net.Sdk.Protocol.Generated;
 using Acme.Net.Sdk.Support;
 
@@ -84,28 +85,34 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
             return this;
         }
 
+        /// <summary>
+        /// Field for storing the DataEntry when needed for test vectors.
+        /// </summary>
+        public IDataEntry? DataEntry { get; set; }
+        
         /// <inheritdoc/>
         public byte[] MarshalBinary()
         {
             var marshaller = new Marshaller();
             
-            // Marshal Data if present
-            if (Data != null)
+            // Field 1: type (CRITICAL - was missing!)
+            marshaller.WriteUInt(1, TransactionTypeCode.WriteData);
+            
+            // Field 2: entry (DataEntry union)
+            if (DataEntry != null)
             {
-                marshaller.WriteValue(1, Data);
+                // Use the explicit DataEntry if set (for test vectors)
+                marshaller.WriteValue(2, DataEntry);
+            }
+            else if (Data != null || !string.IsNullOrEmpty(Format) || !string.IsNullOrEmpty(EntryHash))
+            {
+                // For backward compatibility, create an AccumulateDataEntry from the legacy fields
+                var entry = DataEntryHelper.FromLegacyFields(Data, Format, EntryHash);
+                marshaller.WriteValue(2, entry);
             }
             
-            // Marshal Format if present
-            if (!string.IsNullOrEmpty(Format))
-            {
-                marshaller.WriteValue(2, Format);
-            }
-            
-            // Marshal EntryHash if present
-            if (!string.IsNullOrEmpty(EntryHash))
-            {
-                marshaller.WriteValue(3, EntryHash);
-            }
+            // Field 3: scratch (not implemented yet)
+            // Field 4: writeToState (not implemented yet)
             
             return marshaller.GetBytes();
         }

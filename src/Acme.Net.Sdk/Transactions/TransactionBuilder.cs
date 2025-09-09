@@ -89,9 +89,17 @@ namespace Acme.Net.Sdk.Transactions
             if (principal == null)
                 throw new ArgumentNullException(nameof(principal));
 
-            // Create a signer from the principal
-            // In a production implementation, this would use the key and other attributes from the principal
-            var signer = new Signer(); // TODO: Initialize with principal's keys
+            // Create a signer from the principal with proper initialization
+            var signer = new Signer()
+                .WithUrl(principal.Account.Url)
+                .WithType(principal.SignatureKeyPair.Type)
+                .WithKeyPair(principal.SignatureKeyPair)
+                .WithVersion(principal.SignerVersion)
+                .WithNonceFromTimeNow();
+            
+            // Also set the origin from the principal's account
+            Origin = principal.Account.Url;
+            
             return WithSigner(signer);
         }
 

@@ -1,6 +1,7 @@
 using System;
-// TODO: Uncomment these using statements when generated types are available
-// using System.Linq;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Linq;
 using Acme.Net.Sdk.Protocol.Generated;
 using Acme.Net.Sdk.Protocol.Generated.Protocol;
 using Acme.Net.Sdk.Support;
@@ -78,7 +79,6 @@ namespace Acme.Net.Sdk.Protocol
                 throw new ArgumentNullException(nameof(transaction), "Transaction, header, or body cannot be null");
             }
 
-            // For now, we'll go back to the original implementation that seemed to work better
             // Create a buffer to hold the header hash and body hash concatenated
             byte[] hashBuffer = new byte[64];
             int offset = 0;
@@ -92,10 +92,25 @@ namespace Acme.Net.Sdk.Protocol
 
             // Get the body hash based on transaction type
             ITransactionBody txBody = (ITransactionBody)transaction.Body;
-            byte[] bodyBinary = txBody.MarshalBinary();
-            byte[] bodyHash = HashUtils.Sha256(bodyBinary);
-            // Copy body hash to the buffer
-            Buffer.BlockCopy(bodyHash, 0, hashBuffer, offset, bodyHash.Length);
+            
+            // Special handling for WriteData and WriteDataTo transactions
+            if (txBody is Protocol.Generated.Protocol.WriteData writeData)
+            {
+                byte[] bodyHash = HashWriteData(writeData);
+                Buffer.BlockCopy(bodyHash, 0, hashBuffer, offset, bodyHash.Length);
+            }
+            else if (txBody is Protocol.Generated.Protocol.WriteDataTo writeDataTo)
+            {
+                byte[] bodyHash = HashWriteDataTo(writeDataTo);
+                Buffer.BlockCopy(bodyHash, 0, hashBuffer, offset, bodyHash.Length);
+            }
+            else
+            {
+                // Standard transaction hashing
+                byte[] bodyBinary = txBody.MarshalBinary();
+                byte[] bodyHash = HashUtils.Sha256(bodyBinary);
+                Buffer.BlockCopy(bodyHash, 0, hashBuffer, offset, bodyHash.Length);
+            }
 
             // Compute the final transaction hash
             return HashUtils.Sha256(hashBuffer);
@@ -129,90 +144,130 @@ namespace Acme.Net.Sdk.Protocol
             return transaction;
         }
 
-        private static void HashWriteData(byte[] hashBuffer, int offset, WriteData writeData)
+        private static byte[] HashWriteData(WriteData writeData)
         {
-            // Create a copy without entry data
-            WriteData withoutEntry = new WriteData()
-            {
-                // Copy relevant properties without entry data
-                // For now we're assuming WriteData doesn't have Scratch or WriteToState properties
-                // Adjust if these fields exist
-            };
-
-            byte[] hash = HashWriteDataInternal(withoutEntry, writeData.Data ?? new byte[0], writeData.Format ?? "", writeData.EntryHash ?? "");
-            Buffer.BlockCopy(hash, 0, hashBuffer, offset, hash.Length);
+            // Create a copy without the entry field
+            var withoutEntry = new WriteData();
+            
+            // Marshal the body without the entry
+            byte[] bodyWithoutEntry = withoutEntry.MarshalBinary();
+            byte[] bodyHash = HashUtils.Sha256(bodyWithoutEntry);
+            
+            // Hash the entry data 
+            byte[] entryHash = HashDataEntry(writeData.DataEntry);
+            
+            // Combine using DAG-style merkle hash (matches Go implementation)
+            return ComputeMerkleHash(new[] { bodyHash, entryHash });
         }
 
-        private static void HashWriteDataTo(byte[] hashBuffer, int offset, WriteDataTo writeDataTo)
+        private static byte[] HashWriteDataTo(WriteDataTo writeDataTo)
         {
-            // Create a copy without entry data
-            WriteDataTo withoutEntry = new WriteDataTo()
+            // Create a copy without the entry field  
+            var withoutEntry = new WriteDataTo();
+            if (writeDataTo.Recipient != null)
             {
-                Recipient = writeDataTo.Recipient
-            };
-
-            byte[] hash = HashWriteDataInternal(withoutEntry, writeDataTo.Data ?? new byte[0], writeDataTo.Format ?? "", writeDataTo.EntryHash ?? "");
-            Buffer.BlockCopy(hash, 0, hashBuffer, offset, hash.Length);
-        }
-
-        private static byte[] HashWriteDataInternal(ITransactionBody withoutEntry, byte[] data, string format, string entryHash)
-        {
-            // Calculate the hash for the transaction body without the entry data
-            byte[] withoutEntryBytes = withoutEntry.MarshalBinary();
-            byte[] withoutEntryHash = HashUtils.Sha256(withoutEntryBytes);
-
-            // Hash the data bytes directly if available
-            byte[] dataHash;
-            if (data != null && data.Length > 0)
-            {
-                dataHash = HashUtils.Sha256(data);
+                withoutEntry.WithRecipient(writeDataTo.Recipient);
             }
-            else if (!string.IsNullOrEmpty(entryHash))
+            
+            // Marshal the body without the entry
+            byte[] bodyWithoutEntry = withoutEntry.MarshalBinary();
+            byte[] bodyHash = HashUtils.Sha256(bodyWithoutEntry);
+            
+            // Hash the entry data
+            byte[] entryHash = HashDataEntry(writeDataTo.DataEntry);
+            
+            // Combine using DAG-style merkle hash (matches Go implementation)
+            return ComputeMerkleHash(new[] { bodyHash, entryHash });
+        }
+        
+        private static byte[] HashDataEntry(Protocol.Generated.Protocol.IDataEntry? entry) => entry switch
+        {
+            null => new byte[ProtocolConstants.HashSizeBytes],
+            AccumulateDataEntry acc => ComputeAccumulateDataHash(acc),
+            DoubleHashDataEntry dbl => ComputeDoubleHashDataHash(dbl),
+            FactomDataEntryWrapper fct => ComputeFactomDataHash(fct),
+            _ => HashUtils.Sha256(entry.MarshalBinary())
+        };
+        
+        private static byte[] ComputeAccumulateDataHash(AccumulateDataEntry entry)
+        {
+            if (entry.Data == null || entry.Data.Length == 0)
             {
-                // Parse the entry hash (assuming it's a hex string)
-                try
+                return new byte[ProtocolConstants.HashSizeBytes];
+            }
+            
+            var hashes = entry.Data.Select(d => HashUtils.Sha256(d ?? Array.Empty<byte>())).ToArray();
+            return ComputeMerkleHash(hashes);
+        }
+        
+        private static byte[] ComputeDoubleHashDataHash(DoubleHashDataEntry entry)
+        {
+            if (entry.Data == null || entry.Data.Length == 0)
+            {
+                return new byte[ProtocolConstants.HashSizeBytes];
+            }
+            
+            var hashes = entry.Data.Select(d => HashUtils.Sha256(d ?? Array.Empty<byte>())).ToArray();
+            var merkleRoot = ComputeMerkleHash(hashes);
+            // Double hash the merkle root (this is what makes it "DoubleHash")
+            return HashUtils.Sha256(merkleRoot);
+        }
+        
+        private static byte[] ComputeFactomDataHash(FactomDataEntryWrapper entry)
+        {
+            // For Factom, use special hashing (SHA512 then SHA256 with salt)
+            byte[] data = entry.MarshalBinary();
+            byte[] sum = HashUtils.Sha512(data);
+            byte[] saltedSum = new byte[sum.Length + data.Length];
+            Buffer.BlockCopy(sum, 0, saltedSum, 0, sum.Length);
+            Buffer.BlockCopy(data, 0, saltedSum, sum.Length, data.Length);
+            return HashUtils.Sha256(saltedSum);
+        }
+        
+        private static byte[] ComputeMerkleHash(byte[][] hashes)
+        {
+            if (hashes == null || hashes.Length == 0)
+            {
+                return new byte[ProtocolConstants.HashSizeBytes];
+            }
+            
+            if (hashes.Length == 1)
+            {
+                return hashes[0];
+            }
+            
+            // Accumulate uses a DAG-style merkle algorithm, not a binary tree
+            // Start with the first hash as anchor
+            byte[] anchor = hashes[0];
+            
+            // Use ArrayPool to reduce allocations
+            var pool = ArrayPool<byte>.Shared;
+            
+            // Chain subsequent hashes: anchor = SHA256(anchor || next)
+            for (int i = 1; i < hashes.Length; i++)
+            {
+                if (hashes[i] != null)
                 {
-                    dataHash = Hex.DecodeHex(entryHash);
+                    int combinedLength = anchor.Length + hashes[i].Length;
+                    byte[] combined = pool.Rent(combinedLength);
+                    
+                    try
+                    {
+                        Buffer.BlockCopy(anchor, 0, combined, 0, anchor.Length);
+                        Buffer.BlockCopy(hashes[i], 0, combined, anchor.Length, hashes[i].Length);
+                        
+                        // Create a span for the exact size we need
+                        var dataSpan = new Span<byte>(combined, 0, combinedLength);
+                        anchor = HashUtils.Sha256(dataSpan.ToArray());
+                    }
+                    finally
+                    {
+                        pool.Return(combined, clearArray: true);
+                    }
                 }
-                catch (Exception)
-                {
-                    // If we can't parse the entry hash, use an empty hash
-                    dataHash = new byte[32];
-                }
             }
-            else
-            {
-                // No data and no entry hash, use empty hash
-                dataHash = new byte[32];
-            }
-
-            // Combine the two hashes
-            byte[] combined = new byte[64];
-            Buffer.BlockCopy(withoutEntryHash, 0, combined, 0, 32);
-            Buffer.BlockCopy(dataHash, 0, combined, 32, 32);
-
-            // Hash the combined data
-            return HashUtils.Sha256(combined);
-        }
-
-        // Placeholder for getting header bytes
-        private static byte[] GetHeaderBytes(TransactionHeader header)
-        {
-            // In a full implementation, this would use the marshalled binary representation
-            // For now, if Principal URL is available, use its bytes, otherwise return default hash
-            if (header.Principal != null)
-            {
-                return header.Principal.GetBytes();
-            }
-            return new byte[32]; // Default empty hash
-        }
-
-        // Placeholder for getting body bytes
-        private static byte[] GetBodyBytes(ITransactionBody body)
-        {
-            // In a full implementation, this would use the marshalled binary representation
-            // For now, return a placeholder
-            return new byte[32]; // Default empty hash
+            
+            return anchor;
         }
 
         // Implementation commented out until required generated types are available

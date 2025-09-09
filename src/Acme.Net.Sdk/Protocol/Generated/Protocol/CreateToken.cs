@@ -44,10 +44,10 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         public ulong? SupplyLimit { get; set; }
 
         /// <summary>
-        /// Gets or sets metadata about the token as a raw JSON value.
+        /// Gets or sets the properties URL for the token.
         /// </summary>
         [JsonProperty("properties")]
-        public JRaw? Properties { get; set; }
+        public Url? Properties { get; set; }
 
         /// <summary>
         /// Sets the URL for the new token.
@@ -107,25 +107,25 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         }
 
         /// <summary>
-        /// Sets the properties as a raw JSON value.
+        /// Sets the properties URL.
         /// </summary>
-        /// <param name="properties">The properties as a JRaw instance.</param>
+        /// <param name="properties">The properties URL.</param>
         /// <returns>This instance for method chaining.</returns>
-        public CreateToken WithProperties(JRaw properties)
+        public CreateToken WithProperties(Url properties)
         {
             Properties = properties ?? throw new ArgumentNullException(nameof(properties));
             return this;
         }
 
         /// <summary>
-        /// Sets the properties as a JSON string.
+        /// Sets the properties URL.
         /// </summary>
-        /// <param name="properties">The properties as a JSON string.</param>
+        /// <param name="properties">The properties URL as a string.</param>
         /// <returns>This instance for method chaining.</returns>
         public CreateToken WithProperties(string properties)
         {
             if (string.IsNullOrEmpty(properties)) throw new ArgumentNullException(nameof(properties));
-            Properties = new JRaw(properties);
+            Properties = new Url(properties);
             return this;
         }
 
@@ -150,19 +150,27 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
             }
 
             // Marshal precision as field 5
-            marshaller.WriteInt(5, Precision);
+            marshaller.WriteUInt(5, Precision);
 
             // Marshal properties as field 6 if present
-            // Note: In JavaScript this is a URL, but we're using JToken/string
             if (Properties != null)
             {
-                marshaller.WriteString(6, Properties.ToString());
+                marshaller.WriteValue(6, Properties);
             }
 
-            // Marshal supply limit as field 7 if present
+            // Marshal supply limit as field 7 if present (as BigInt)
             if (SupplyLimit.HasValue)
             {
-                marshaller.WriteUInt(7, SupplyLimit.Value);
+                var supplyBytes = new System.Numerics.BigInteger(SupplyLimit.Value).ToByteArray();
+                // Convert to big-endian
+                bool hasSignByte = supplyBytes.Length > 1 && supplyBytes[supplyBytes.Length - 1] == 0;
+                int length = hasSignByte ? supplyBytes.Length - 1 : supplyBytes.Length;
+                var result = new byte[length];
+                for (int i = 0; i < length; i++)
+                {
+                    result[i] = supplyBytes[length - 1 - i];
+                }
+                marshaller.WriteBytes(7, result);
             }
 
             // Note: Field 9 would be authorities (repeatable URL array) but not implemented yet

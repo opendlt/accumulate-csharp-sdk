@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq; // For JToken
+using Acme.Net.Sdk.Exceptions;
 
 namespace Acme.Net.Sdk.Support
 {
@@ -26,6 +27,9 @@ namespace Acme.Net.Sdk.Support
             // MissingMemberHandling = MissingMemberHandling.Ignore // Default
         };
 
+        // Cache a single JsonSerializer instance for performance
+        private static readonly JsonSerializer CachedSerializer = JsonSerializer.Create(SerializerSettings);
+
         /// <summary>
         /// Deserializes a JSON string into an object of the specified type.
         /// </summary>
@@ -36,9 +40,21 @@ namespace Acme.Net.Sdk.Support
         /// <exception cref="Newtonsoft.Json.JsonException">Thrown if deserialization fails.</exception>
         public static T ReadValue<T>(string json) // Simplified signature using generic T
         {
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                throw new ArgumentException("JSON string cannot be null or empty", nameof(json));
+            }
+
             try
             {
-                return JsonConvert.DeserializeObject<T>(json, SerializerSettings)!;
+                var result = JsonConvert.DeserializeObject<T>(json, SerializerSettings);
+                if (result == null && typeof(T).IsValueType == false && Nullable.GetUnderlyingType(typeof(T)) == null)
+                {
+                    throw new TransactionDeserializationException(
+                        $"Deserialization resulted in null for non-nullable type {typeof(T).Name}", 
+                        typeof(T));
+                }
+                return result!;
             }
             catch (Newtonsoft.Json.JsonException) // Fully qualified JsonException
             {
@@ -56,9 +72,25 @@ namespace Acme.Net.Sdk.Support
         /// <exception cref="Newtonsoft.Json.JsonException">Thrown if deserialization fails.</exception>
         public static object ReadValue(string json, Type valueType)
         {
-             try
+            if (string.IsNullOrWhiteSpace(json))
             {
-                return JsonConvert.DeserializeObject(json, valueType, SerializerSettings)!;
+                throw new ArgumentException("JSON string cannot be null or empty", nameof(json));
+            }
+            if (valueType == null)
+            {
+                throw new ArgumentNullException(nameof(valueType));
+            }
+
+            try
+            {
+                var result = JsonConvert.DeserializeObject(json, valueType, SerializerSettings);
+                if (result == null && valueType.IsValueType == false && Nullable.GetUnderlyingType(valueType) == null)
+                {
+                    throw new TransactionDeserializationException(
+                        $"Deserialization resulted in null for non-nullable type {valueType.Name}", 
+                        valueType);
+                }
+                return result!;
             }
             catch (Newtonsoft.Json.JsonException) // Fully qualified JsonException
             {
@@ -75,9 +107,21 @@ namespace Acme.Net.Sdk.Support
         /// <exception cref="Newtonsoft.Json.JsonException">Thrown if conversion fails.</exception>
         public static T ReadValue<T>(JToken node) // Changed parameter type to JToken
         {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
             try
             {
-                return node.ToObject<T>(Newtonsoft.Json.JsonSerializer.Create(SerializerSettings))!;
+                var result = node.ToObject<T>(CachedSerializer);
+                if (result == null && typeof(T).IsValueType == false && Nullable.GetUnderlyingType(typeof(T)) == null)
+                {
+                    throw new TransactionDeserializationException(
+                        $"Deserialization resulted in null for non-nullable type {typeof(T).Name}", 
+                        typeof(T));
+                }
+                return result!;
             }
             catch (Newtonsoft.Json.JsonException) // Fully qualified JsonException
             {
@@ -95,9 +139,25 @@ namespace Acme.Net.Sdk.Support
         /// <exception cref="Newtonsoft.Json.JsonException">Thrown if conversion fails.</exception>
         public static object ReadValue(JToken node, Type valueType) // Changed parameter type to JToken
         {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+            if (valueType == null)
+            {
+                throw new ArgumentNullException(nameof(valueType));
+            }
+
             try
             {
-                return node.ToObject(valueType, Newtonsoft.Json.JsonSerializer.Create(SerializerSettings))!;
+                var result = node.ToObject(valueType, CachedSerializer);
+                if (result == null && valueType.IsValueType == false && Nullable.GetUnderlyingType(valueType) == null)
+                {
+                    throw new TransactionDeserializationException(
+                        $"Deserialization resulted in null for non-nullable type {valueType.Name}", 
+                        valueType);
+                }
+                return result!;
             }
             catch (Newtonsoft.Json.JsonException) // Fully qualified JsonException
             {
@@ -114,9 +174,15 @@ namespace Acme.Net.Sdk.Support
         /// <exception cref="Newtonsoft.Json.JsonException">Thrown if conversion fails.</exception>
         public static List<T> ReadList<T>(JToken node)
         {
+            if (node == null)
+            {
+                throw new ArgumentNullException(nameof(node));
+            }
+
             try
             {
-                return node.ToObject<List<T>>(Newtonsoft.Json.JsonSerializer.Create(SerializerSettings))!;
+                var result = node.ToObject<List<T>>(CachedSerializer);
+                return result ?? new List<T>(); // Return empty list instead of null
             }
             catch (Newtonsoft.Json.JsonException) // Fully qualified JsonException
             {
@@ -150,15 +216,30 @@ namespace Acme.Net.Sdk.Support
         /// Checks a TxResponse for errors.
         /// </summary>
         /// <param name="txResponse">The transaction response object.</param>
-        /// <exception cref="NotImplementedException">Thrown because dependent generated classes are not yet ported.</exception>
         /// <exception cref="ApplicationException">Thrown if the response indicates an error.</exception>
-        /// <remarks>TODO: Implement fully when generated classes (TxResponse) are ported.</remarks>
-        public static void CheckForErrors(object /* TxResponse */ txResponse)
+        public static void CheckForErrors(object txResponse)
         {
-            throw new NotImplementedException("Depends on generated TxResponse class.");
-            // Example logic:
-            // if (txResponse == null) throw new ApplicationException("No transaction response");
-            // if (txResponse.Code != 0) throw new ApplicationException($"Transaction error: {txResponse.Code} - {txResponse.Message}");
+            // Handle null response
+            if (txResponse == null)
+            {
+                throw new TransactionValidationException("No transaction response received");
+            }
+
+            // Handle Api.V2.TxResponse type
+            if (txResponse is Api.V2.TxResponse apiResponse)
+            {
+                if (apiResponse.Code != 0)
+                {
+                    string errorMessage = !string.IsNullOrEmpty(apiResponse.Message) 
+                        ? apiResponse.Message 
+                        : "Unknown error";
+                    throw new TransactionResponseException(
+                        $"Transaction error: Code {apiResponse.Code} - {errorMessage}", 
+                        apiResponse.Code, 
+                        apiResponse.TxId);
+                }
+            }
+            // If it's not a recognized type, we can't validate it but don't throw
         }
 
         /// <summary>
@@ -166,13 +247,38 @@ namespace Acme.Net.Sdk.Support
         /// </summary>
         /// <param name="txResponse">The transaction response object.</param>
         /// <param name="txStatus">The transaction status object.</param>
-        /// <exception cref="NotImplementedException">Thrown because dependent generated classes are not yet ported.</exception>
         /// <exception cref="ApplicationException">Thrown if the response or status indicates an error.</exception>
-        /// <remarks>TODO: Implement fully when generated classes (TxResponse, TransactionStatus) are ported.</remarks>
-        public static void CheckForErrors(object /* TxResponse */ txResponse, object? /* TransactionStatus */ txStatus)
+        public static void CheckForErrors(object txResponse, object? txStatus)
         {
-            throw new NotImplementedException("Depends on generated TxResponse and TransactionStatus classes.");
-            // Complex logic involving checking both objects and potentially combining error messages
+            // First check the response itself
+            CheckForErrors(txResponse);
+
+            // Then check the transaction status if provided
+            if (txStatus == null)
+            {
+                return; // No status to check
+            }
+
+            if (txStatus is Protocol.TransactionStatus status)
+            {
+                // Use the helper methods for consistency
+                if (status.HasError())
+                {
+                    throw new TransactionResponseException(
+                        $"Transaction failed: {status.GetStatusMessage()}", 
+                        status.Code, 
+                        status.TxId);
+                }
+
+                // Check if transaction failed to deliver
+                if (!status.IsComplete() && !status.Pending)
+                {
+                    throw new TransactionDeliveryException(
+                        "Transaction is in an invalid state: not complete and not pending", 
+                        false, 
+                        status.TxId);
+                }
+            }
         }
 
         /// <summary>
@@ -227,8 +333,21 @@ namespace Acme.Net.Sdk.Support
         /// <param name="txResponse">The transaction response to check.</param>
         public static void CheckForErrors(Api.V2.TxResponse txResponse)
         {
-            // This is a placeholder implementation.
-            // In a real implementation, it would check for error codes and throw appropriate exceptions.
+            if (txResponse == null)
+            {
+                throw new TransactionValidationException("No transaction response received");
+            }
+
+            if (txResponse.Code != 0)
+            {
+                string errorMessage = !string.IsNullOrEmpty(txResponse.Message) 
+                    ? txResponse.Message 
+                    : "Unknown error";
+                throw new TransactionResponseException(
+                    $"Transaction error: Code {txResponse.Code} - {errorMessage}", 
+                    txResponse.Code, 
+                    txResponse.TxId);
+            }
         }
 
         /// <summary>
@@ -238,8 +357,30 @@ namespace Acme.Net.Sdk.Support
         /// <param name="transactionStatus">The transaction status to check.</param>
         public static void CheckForErrors(Api.V2.TxResponse txResponse, object transactionStatus)
         {
-            // This is a placeholder implementation.
-            // In a real implementation, it would check for error codes and throw appropriate exceptions.
+            // First check the response
+            CheckForErrors(txResponse);
+
+            // Then check the transaction status if it's the right type
+            if (transactionStatus is Protocol.TransactionStatus status)
+            {
+                // Use the helper methods for consistency
+                if (status.HasError())
+                {
+                    throw new TransactionResponseException(
+                        $"Transaction failed: {status.GetStatusMessage()}", 
+                        status.Code, 
+                        status.TxId);
+                }
+
+                // Check if transaction failed to deliver
+                if (!status.IsComplete() && !status.Pending)
+                {
+                    throw new TransactionDeliveryException(
+                        "Transaction is in an invalid state: not complete and not pending", 
+                        false, 
+                        status.TxId);
+                }
+            }
         }
     }
 } 

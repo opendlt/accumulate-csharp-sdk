@@ -125,12 +125,11 @@ namespace Acme.Net.Sdk.Protocol
             
             reader.ReadByte(); // Skip account type byte
             byte sigTypeValue = reader.ReadByte();
-            // TODO: Use SignatureTypeExtensions.FromValue(sigTypeValue) if/when implemented
-            if (!Enum.IsDefined(typeof(SignatureType), (int)sigTypeValue))
+            SignatureType signatureType = SignatureTypeExtensions.FromValue(sigTypeValue);
+            if (signatureType == SignatureType.UNKNOWN && sigTypeValue != 0)
             {
                  throw new FormatException($"Invalid signature type value read from data: {sigTypeValue}");
             }
-            SignatureType signatureType = (SignatureType)sigTypeValue;
             
             byte keyLength = reader.ReadByte();
             byte[] secretKey = reader.ReadBytes(keyLength);

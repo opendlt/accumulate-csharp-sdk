@@ -343,9 +343,13 @@ namespace Acme.Net.Sdk.Tests.Protocol
                     if (txData.Body.TryGetProperty("oracle", out var oracle))
                     {
                         if (oracle.ValueKind == JsonValueKind.Number)
-                            addCredits.WithOracle(oracle.GetInt64().ToString());
-                        else
-                            addCredits.WithOracle(oracle.GetString() ?? string.Empty);
+                            addCredits.WithOracle((ulong)oracle.GetInt64());
+                        else if (oracle.ValueKind == JsonValueKind.String)
+                        {
+                            // Parse string as ulong if it's a numeric string
+                            if (ulong.TryParse(oracle.GetString(), out var oracleValue))
+                                addCredits.WithOracle(oracleValue);
+                        }
                     }
                     tx.Body = addCredits;
                     break;

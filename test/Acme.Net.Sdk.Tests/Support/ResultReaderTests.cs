@@ -112,8 +112,10 @@ namespace Acme.Net.Sdk.Tests.Support
             var dummyStatus = new object();
 
             Assert.Throws<NotImplementedException>(() => ResultReader.ReadMultiResponse<object>(dummyToken, typeof(object)));
-            Assert.Throws<NotImplementedException>(() => ResultReader.CheckForErrors(dummyResponse));
-            Assert.Throws<NotImplementedException>(() => ResultReader.CheckForErrors(dummyResponse, dummyStatus));
+            // CheckForErrors methods are now implemented and should not throw NotImplementedException
+            // They will throw ApplicationException only on actual errors, not for valid objects
+            ResultReader.CheckForErrors(dummyResponse); // Should not throw for non-null object
+            ResultReader.CheckForErrors(dummyResponse, dummyStatus); // Should not throw for non-null objects
             Assert.Throws<NotImplementedException>(() => ResultReader.GetTransactionType(dummyToken));
             Assert.Throws<NotImplementedException>(() => ResultReader.GetAccountType(dummyToken));
         }

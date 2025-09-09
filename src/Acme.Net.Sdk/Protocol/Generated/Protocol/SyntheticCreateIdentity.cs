@@ -110,8 +110,8 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
             {
                 foreach (var account in Accounts)
                 {
-                    // TODO: Implement account marshalling
-                    // marshaller.WriteBytes(3, account.MarshalBinary());
+                    // Each account implements IMarshallable
+                    marshaller.WriteValue(3, account);
                 }
             }
             

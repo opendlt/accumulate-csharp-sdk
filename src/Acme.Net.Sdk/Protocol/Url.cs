@@ -13,6 +13,7 @@ namespace Acme.Net.Sdk.Protocol
     public class Url
     {
         private readonly Uri _uri;
+        private readonly string _originalString;
 
         /// <summary>
         /// Gets the underlying System.Uri object.
@@ -24,6 +25,7 @@ namespace Acme.Net.Sdk.Protocol
         {
             // Validation is done in Parse/Constructors
             _uri = uri;
+            _originalString = uri.ToString();
         }
 
         /// <summary>
@@ -40,6 +42,14 @@ namespace Acme.Net.Sdk.Protocol
                 throw new ArgumentNullException(nameof(value));
             }
             
+            // Parse and potentially modify the URL
+            string actualUrl = value;
+            if (!value.Contains("://"))
+            {
+                actualUrl = "acc://" + value;
+            }
+            
+            _originalString = actualUrl;
             _uri = ParseInternal(value);
             
             // Java version checked host emptiness after creating URI, let's do similar check
@@ -63,12 +73,8 @@ namespace Acme.Net.Sdk.Protocol
             {
                 throw new ArgumentNullException(nameof(str));
             }
-            Uri parsedUri = ParseInternal(str);
-            if (string.IsNullOrEmpty(parsedUri.Host))
-            {
-                 throw new UriFormatException("Accumulate URL must have an authority (host).");
-            }
-            return new Url(parsedUri);
+            // Use the public constructor to preserve the original string
+            return new Url(str);
         }
 
         // Internal parsing logic to handle scheme addition
@@ -139,13 +145,13 @@ namespace Acme.Net.Sdk.Protocol
         /// </summary>
         /// <returns>The URL string.</returns>
         public string String() { 
-            string s = _uri.ToString();
+            // Return the original string to preserve case
             // If the original Uri had an empty path, ToString() adds a trailing /. Remove it.
-            if ((_uri.AbsolutePath == "" || _uri.AbsolutePath == "/") && s.EndsWith("/")) 
+            if ((_uri.AbsolutePath == "" || _uri.AbsolutePath == "/") && _originalString.EndsWith("/")) 
             {
-                return s.TrimEnd('/');
+                return _originalString.TrimEnd('/');
             }
-            return s;
+            return _originalString;
         }
 
         /// <summary>

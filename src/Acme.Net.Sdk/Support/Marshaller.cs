@@ -151,8 +151,7 @@ namespace Acme.Net.Sdk.Support
         {
             if (value != null)
             {
-                // Consider adding length check if hashes must be a specific size (e.g., 32 bytes)
-                // if (value.Length != 32) throw new ArgumentException("Hash must be 32 bytes.", nameof(value));
+                // Custom format: field number as single byte, then raw hash without length
                 _writer.Write((byte)fieldNr);
                 _writer.Write(value);
             }
@@ -309,10 +308,11 @@ namespace Acme.Net.Sdk.Support
             // Removed explicit check for byte[][] - handled by IsArrayButNotByteArray + WriteArray
             // Removed explicit check for string[] - handled by IsArrayButNotByteArray + WriteArray
             else if (value is IIntValueEnum vEnum) { WriteEnum(fieldNr, vEnum); }
+            else if (value.GetType().IsEnum) { WriteUInt(fieldNr, Convert.ToInt32(value)); } // Handle regular enums
             else if (value is IMarshallable vMarshallable) { WriteMarshallable(fieldNr, vMarshallable); }
             else if (value is string vString) { WriteString(fieldNr, vString); }
-            else if (value is int vInt) { WriteUInt(fieldNr, vInt); } // Java used writeInt, but Accumulate seems to use varuint for most numbers? Let's use WriteUInt based on field types seen elsewhere. TODO: Verify protocol spec.
-            else if (value is long vLong) { WriteUInt(fieldNr, vLong); } // Java used writeLong, using WriteUInt for consistency. TODO: Verify protocol spec.
+            else if (value is int vInt) { WriteUInt(fieldNr, vInt); } // Accumulate uses varuint for most numbers
+            else if (value is long vLong) { WriteUInt(fieldNr, vLong); } // Using WriteUInt for consistency with protocol
             else if (value is bool vBool) { WriteBool(fieldNr, vBool); }
             else if (value is BigInteger vBigInt) { WriteUInt(fieldNr, vBigInt); } // writeUint used in Java
             // Removed BigDecimal handler (covered by BigInteger)
