@@ -3,6 +3,7 @@ using System.Numerics;
 using Newtonsoft.Json;
 using Acme.Net.Sdk.Protocol.Generated;
 using Acme.Net.Sdk.Support;
+using Acme.Net.Sdk.Extensions;
 
 namespace Acme.Net.Sdk.Protocol.Generated.Protocol
 {
@@ -35,7 +36,7 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         /// Gets or sets the oracle signature (if required).
         /// </summary>
         [JsonProperty("oracle")]
-        public string? Oracle { get; set; }
+        public ulong Oracle { get; set; }
 
         /// <summary>
         /// Sets the recipient account URL.
@@ -85,13 +86,13 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         }
 
         /// <summary>
-        /// Sets the oracle signature.
+        /// Sets the oracle value.
         /// </summary>
-        /// <param name="oracle">The oracle signature.</param>
+        /// <param name="oracle">The oracle value.</param>
         /// <returns>This instance for method chaining.</returns>
-        public AddCredits WithOracle(string oracle)
+        public AddCredits WithOracle(ulong oracle)
         {
-            Oracle = oracle ?? throw new ArgumentNullException(nameof(oracle));
+            Oracle = oracle;
             return this;
         }
 
@@ -100,32 +101,25 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
 
-            // Marshal type as field 1
-            marshaller.WriteUInt(1, TransactionTypeCode.AddCredits);
+            // Marshal type
+            marshaller.WriteUInt(ProtocolConstants.AddCreditsFields.Type, TransactionTypeCode.AddCredits);
 
-            // Marshal recipient URL as field 2
+            // Marshal recipient URL
             if (Recipient != null)
             {
-                marshaller.WriteValue(2, Recipient);
+                marshaller.WriteValue(ProtocolConstants.AddCreditsFields.Recipient, Recipient);
             }
 
-            // Marshal amount as field 3 - convert to byte array directly
-            if (Amount > BigInteger.Zero)
+            // Marshal amount as BigInt (big-endian bytes)
+            if (Amount >= BigInteger.Zero)
             {
-                byte[] amountBytes = Amount.ToByteArray();
-                marshaller.WriteBytes(3, amountBytes);
-            }
-            else
-            {
-                // Write empty byte array for zero
-                marshaller.WriteBytes(3, new byte[] { 0 });
+                marshaller.WriteBytes(ProtocolConstants.AddCreditsFields.Amount, Amount.ToBigEndianBytes());
             }
 
-            // Marshal oracle as field 4 if present
-            // Note: The JavaScript SDK shows this as uint, but we're using string
-            if (!string.IsNullOrEmpty(Oracle))
+            // Marshal oracle if present
+            if (Oracle > 0)
             {
-                marshaller.WriteString(4, Oracle);
+                marshaller.WriteUInt(ProtocolConstants.AddCreditsFields.Oracle, Oracle);
             }
 
             return marshaller.GetBytes();

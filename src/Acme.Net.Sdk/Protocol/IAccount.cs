@@ -37,10 +37,10 @@ namespace Acme.Net.Sdk.Protocol
             // Register our implemented account types
             { "liteTokenAccount", typeof(LiteTokenAccount) },
             { "liteIdentity", typeof(LiteIdentity) },
+            { "identity", typeof(ADI) },
             
             // These will be implemented later:
             // { "unknown", typeof(UnknownAccount) },
-            // { "identity", typeof(ADI) },
             // { "tokenIssuer", typeof(TokenIssuer) },
             // { "tokenAccount", typeof(TokenAccount) },
             // { "keyPage", typeof(KeyPage) },

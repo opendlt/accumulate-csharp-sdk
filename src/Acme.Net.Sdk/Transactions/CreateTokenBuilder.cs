@@ -86,9 +86,9 @@ namespace Acme.Net.Sdk.Transactions
         }
 
         /// <summary>
-        /// Sets the properties as a JSON string.
+        /// Sets the properties URL for the token.
         /// </summary>
-        /// <param name="properties">The properties as a JSON string.</param>
+        /// <param name="properties">The properties URL.</param>
         /// <returns>This builder for method chaining.</returns>
         /// <exception cref="ArgumentNullException">Thrown if properties is null or empty.</exception>
         public CreateTokenBuilder WithProperties(string properties)
@@ -140,7 +140,7 @@ namespace Acme.Net.Sdk.Transactions
             // Set properties if specified
             if (!string.IsNullOrEmpty(_properties))
             {
-                createToken.WithProperties(_properties);
+                createToken.WithProperties(new Url(_properties));
             }
 
             return createToken;

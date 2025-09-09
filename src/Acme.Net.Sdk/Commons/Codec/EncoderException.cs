@@ -26,7 +26,6 @@ namespace Acme.Net.Sdk.Commons.Codec
     /// such as invalid data or inability to calculate a checksum.
     /// Corresponds to the Java class io.accumulatenetwork.sdk.commons.codec.EncoderException.
     /// </summary>
-    // TODO: Consider adding [Serializable] attribute if needed for specific scenarios like remoting or binary serialization.
     public class EncoderException : Exception
     {
         /// <summary>

@@ -97,7 +97,11 @@ namespace Acme.Net.Sdk.Tests.Protocol
             // Arrange
             var transaction1 = CreateSampleTransaction();
             var transaction2 = CreateSampleTransaction();
-            ((WriteData)transaction2.Body).WithData("Different data");
+            // Set the DataEntry field that affects hashing
+            ((WriteData)transaction2.Body).DataEntry = new DoubleHashDataEntry 
+            { 
+                Data = new[] { Encoding.UTF8.GetBytes("Different data") } 
+            };
 
             // Act
             TransactionHasher.HashTransaction(transaction1);
@@ -156,14 +160,19 @@ namespace Acme.Net.Sdk.Tests.Protocol
 
         private Transaction CreateSampleTransaction()
         {
+            var writeData = new WriteData();
+            writeData.DataEntry = new DoubleHashDataEntry 
+            { 
+                Data = new[] { Encoding.UTF8.GetBytes("Hello, World!") } 
+            };
+            
             return new Transaction
             {
                 Header = new TransactionHeader()
                     .WithPrincipal(new Url("acc://test.acme"))
                     .WithMemo("Test Transaction"),
                     
-                Body = new WriteData()
-                    .WithData(Encoding.UTF8.GetBytes("Hello, World!"))
+                Body = writeData
             };
         }
     }

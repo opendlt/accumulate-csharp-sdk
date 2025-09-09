@@ -1,5 +1,5 @@
 using System;
-// using Acme.Net.Sdk.Generated.Protocol; // TODO: Uncomment when generated types like ADI, AccountType are available.
+using Acme.Net.Sdk.Protocol.Generated;
 
 namespace Acme.Net.Sdk.Protocol
 {
@@ -7,90 +7,93 @@ namespace Acme.Net.Sdk.Protocol
     /// Represents a principal associated with an Accumulate Digital Identity (ADI).
     /// Corresponds to the Java class io.accumulatenetwork.sdk.protocol.ADIPrincipal.
     /// </summary>
-    // TODO: Add " : Principal" once Principal class is ported
-    public class ADIPrincipal 
+    public class ADIPrincipal : Principal 
     {
-        // TODO: Remove this placeholder once inheritance from Principal is added
-        protected object _keyPair = null!;
-        protected object _account = null!;
-        public ADIPrincipal(object account, object keyPair) { /* Placeholder */ _keyPair = keyPair; _account = account; }
-        protected string ExportToBase64(object accountType) => throw new NotImplementedException(); // Placeholder
-        protected static object ImportKeyPairFromBase64(string data) => throw new NotImplementedException(); // Placeholder
-        // --- End Placeholder ---
-        
-        // TODO: Define appropriate constructors when Principal, ADI, and SignatureKeyPair are ported.
-        // The base constructor call needs the ADI account object.
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ADIPrincipal"/> class.
-        /// (Requires Principal, ADI, and SignatureKeyPair to be ported).
         /// </summary>
         /// <param name="adiUrl">The URL of the ADI account.</param>
-        /// <param name="keyPair">The key pair associated with the principal. (Type object for now)</param>
-        public ADIPrincipal(string adiUrl, object keyPair) 
-            // : base(CreateAdiAccountPlaceholder(Url.Parse(adiUrl)), keyPair) // Example base call structure
+        /// <param name="keyPair">The key pair associated with the principal.</param>
+        /// <exception cref="ArgumentNullException">Thrown if adiUrl or keyPair is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if adiUrl is empty or whitespace.</exception>
+        public ADIPrincipal(string adiUrl, Acme.Net.Sdk.Signing.SignatureKeyPair keyPair) 
+            : base(new ADI(Url.Parse(ValidateAdiUrl(adiUrl))), keyPair ?? throw new ArgumentNullException(nameof(keyPair)))
         {
-             throw new NotImplementedException("Requires Principal, ADI, and SignatureKeyPair classes to be ported.");
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ADIPrincipal"/> class.
-        /// (Requires Principal, ADI, and SignatureKeyPair to be ported).
         /// </summary>
         /// <param name="adiUrl">The URL of the ADI account.</param>
-        /// <param name="keyPair">The key pair associated with the principal. (Type object for now)</param>
-        public ADIPrincipal(Url adiUrl, object keyPair)
-             // : base(CreateAdiAccountPlaceholder(adiUrl), keyPair) // Example base call structure
+        /// <param name="keyPair">The key pair associated with the principal.</param>
+        /// <exception cref="ArgumentNullException">Thrown if adiUrl or keyPair is null.</exception>
+        public ADIPrincipal(Url adiUrl, Acme.Net.Sdk.Signing.SignatureKeyPair keyPair)
+            : base(new ADI(adiUrl ?? throw new ArgumentNullException(nameof(adiUrl))), 
+                   keyPair ?? throw new ArgumentNullException(nameof(keyPair)))
         {
-            throw new NotImplementedException("Requires Principal, ADI, and SignatureKeyPair classes to be ported.");
-        }
-        
-        // Helper placeholder for base constructor call
-        private static object CreateAdiAccountPlaceholder(Url adiUrl)
-        {
-            // TODO: Replace with actual ADI creation when ADI class is ported.
-            // return new ADI { Url = adiUrl }; // Example future implementation
-             throw new NotImplementedException("Requires ADI class to be ported.");
         }
 
         /// <summary>
         /// Exports the key pair associated with this principal to a base64 string.
-        /// (Requires Principal base class and AccountType enum to be ported).
         /// </summary>
         /// <returns>Base64 encoded string of the key pair.</returns>
         public string ExportToBase64()
         {
-            // TODO: Replace object with actual AccountType enum when ported.
-            object accountTypeIdentity = new object(); // Placeholder for AccountType.Identity
-            // return base.ExportToBase64(accountTypeIdentity); 
-            throw new NotImplementedException("Requires Principal base class and AccountType enum to be ported.");
+            return base.ExportToBase64(AccountType.IDENTITY);
         }
 
         /// <summary>
         /// Imports an ADIPrincipal from a base64 encoded key pair string and the ADI URL.
-        /// (Requires Principal base class and SignatureKeyPair to be ported).
         /// </summary>
         /// <param name="adiUrl">The URL string of the ADI.</param>
         /// <param name="data">The base64 encoded key pair data.</param>
         /// <returns>A new <see cref="ADIPrincipal"/> instance.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if adiUrl or data is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if adiUrl or data is empty or whitespace.</exception>
         public static ADIPrincipal ImportFromBase64(string adiUrl, string data)
         {
-            // return ImportFromBase64(Url.Parse(adiUrl), data);
-             throw new NotImplementedException("Requires Principal base class and SignatureKeyPair to be ported.");
+            ValidateAdiUrl(adiUrl);
+            if (string.IsNullOrWhiteSpace(data))
+            {
+                throw new ArgumentException("Base64 data cannot be null or empty", nameof(data));
+            }
+            return ImportFromBase64(Url.Parse(adiUrl), data);
         }
 
         /// <summary>
         /// Imports an ADIPrincipal from a base64 encoded key pair string and the ADI URL.
-        /// (Requires Principal base class and SignatureKeyPair to be ported).
         /// </summary>
         /// <param name="adiUrl">The URL of the ADI.</param>
         /// <param name="data">The base64 encoded key pair data.</param>
         /// <returns>A new <see cref="ADIPrincipal"/> instance.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if adiUrl or data is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if data is empty or whitespace.</exception>
         public static ADIPrincipal ImportFromBase64(Url adiUrl, string data)
         {
-            // object keyPair = Principal.ImportKeyPairFromBase64(data);
-            // return new ADIPrincipal(adiUrl, keyPair);
-             throw new NotImplementedException("Requires Principal base class and SignatureKeyPair to be ported.");
+            if (adiUrl == null)
+            {
+                throw new ArgumentNullException(nameof(adiUrl));
+            }
+            if (string.IsNullOrWhiteSpace(data))
+            {
+                throw new ArgumentException("Base64 data cannot be null or empty", nameof(data));
+            }
+            var keyPair = Principal.ImportKeyPairFromBase64(data);
+            return new ADIPrincipal(adiUrl, keyPair);
+        }
+
+        private static string ValidateAdiUrl(string adiUrl)
+        {
+            if (adiUrl == null)
+            {
+                throw new ArgumentNullException(nameof(adiUrl));
+            }
+            if (string.IsNullOrWhiteSpace(adiUrl))
+            {
+                throw new ArgumentException("ADI URL cannot be empty or whitespace", nameof(adiUrl));
+            }
+            return adiUrl;
         }
     }
 }

@@ -26,6 +26,12 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         public Url? Url { get; set; }
 
         /// <summary>
+        /// Gets or sets the public key hash (optional).
+        /// </summary>
+        [JsonProperty("publicKeyHash")]
+        public byte[]? PublicKeyHash { get; set; }
+
+        /// <summary>
         /// Gets or sets the list of key page URLs to include in the key book.
         /// </summary>
         [JsonProperty("pages")]
@@ -120,17 +126,19 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
                 marshaller.WriteValue(2, Url);
             }
             
-            // Note: Field 3 would be publicKeyHash (bytes) but not implemented
+            // Field 3: publicKeyHash (bytes) - optional
+            if (PublicKeyHash != null && PublicKeyHash.Length > 0)
+            {
+                marshaller.WriteBytes(3, PublicKeyHash);
+            }
             
-            // Note: Field 5 would be authorities (repeatable URL array) but not implemented
-            
-            // Marshal Pages - this might be a different field or part of authorities
-            // TODO: Verify the correct field number for Pages
+            // Field 5: authorities (repeatable URL array)
+            // In JavaScript SDK, Pages are passed as authorities
             if (Pages.Count > 0)
             {
                 foreach (var page in Pages)
                 {
-                    marshaller.WriteValue(2, page);
+                    marshaller.WriteUrl(5, page);
                 }
             }
             

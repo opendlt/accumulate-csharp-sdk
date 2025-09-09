@@ -26,10 +26,10 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         public Url? Url { get; set; }
 
         /// <summary>
-        /// Gets or sets the list of keys to include in the key page.
+        /// Gets or sets the list of key specifications to include in the key page.
         /// </summary>
         [JsonProperty("keys")]
-        public List<byte[]> Keys { get; set; } = new List<byte[]>();
+        public List<KeySpecParams> Keys { get; set; } = new List<KeySpecParams>();
 
         /// <summary>
         /// Sets the URL of the key page to create.
@@ -64,7 +64,21 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         public CreateKeyPage AddKey(byte[] key)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            Keys.Add(key);
+            Keys.Add(new KeySpecParams(key));
+            return this;
+        }
+
+        /// <summary>
+        /// Adds a key with a delegate to the key page.
+        /// </summary>
+        /// <param name="key">The key as a byte array.</param>
+        /// <param name="delegate">The delegate URL.</param>
+        /// <returns>This instance for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if key is null.</exception>
+        public CreateKeyPage AddKey(byte[] key, Url? @delegate)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+            Keys.Add(new KeySpecParams(key, @delegate));
             return this;
         }
 
@@ -77,7 +91,7 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         public CreateKeyPage WithKeys(List<byte[]> keys)
         {
             if (keys == null) throw new ArgumentNullException(nameof(keys));
-            Keys = new List<byte[]>(keys);
+            Keys = keys.ConvertAll(k => new KeySpecParams(k));
             return this;
         }
 
@@ -90,7 +104,24 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         public CreateKeyPage WithKeys(byte[][] keys)
         {
             if (keys == null) throw new ArgumentNullException(nameof(keys));
-            Keys = new List<byte[]>(keys);
+            Keys = new List<KeySpecParams>();
+            foreach (var key in keys)
+            {
+                Keys.Add(new KeySpecParams(key));
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the key specifications to include in the key page.
+        /// </summary>
+        /// <param name="keySpecs">The list of key specifications.</param>
+        /// <returns>This instance for method chaining.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if keySpecs is null.</exception>
+        public CreateKeyPage WithKeySpecs(List<KeySpecParams> keySpecs)
+        {
+            if (keySpecs == null) throw new ArgumentNullException(nameof(keySpecs));
+            Keys = new List<KeySpecParams>(keySpecs);
             return this;
         }
 
@@ -104,19 +135,16 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
             
             // Note: URL is not in the JavaScript SDK structure for CreateKeyPage
             
-            // Marshal Keys as field 2
-            // In JavaScript SDK, this is repeatable KeySpecParams with:
+            // Marshal Keys as field 2 (repeatable KeySpecParams)
+            // Each KeySpecParams has:
             // - Field 1: keyHash (bytes)
             // - Field 2: delegate (URL) - optional
             if (Keys.Count > 0)
             {
-                foreach (var key in Keys)
+                foreach (var keySpec in Keys)
                 {
-                    // For now, we're just marshalling the key hash directly
-                    // TODO: Implement KeySpecParams structure if needed
-                    var keySpecMarshaller = new Marshaller();
-                    keySpecMarshaller.WriteValue(1, key);
-                    marshaller.WriteBytes(2, keySpecMarshaller.GetBytes());
+                    // Write each KeySpecParams as a sub-message
+                    marshaller.WriteValue(2, keySpec);
                 }
             }
             

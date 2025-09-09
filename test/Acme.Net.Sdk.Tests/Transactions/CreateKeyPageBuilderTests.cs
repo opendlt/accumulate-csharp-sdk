@@ -59,7 +59,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
             Assert.Equal("createKeyPage", createKeyPage.Type);
             Assert.Equal(keyPageUrl, createKeyPage.Url);
             Assert.Single(createKeyPage.Keys);
-            Assert.Equal(key, createKeyPage.Keys.First());
+            Assert.Equal(key, createKeyPage.Keys.First().KeyHash);
         }
 
         [Fact]
@@ -90,9 +90,9 @@ namespace Acme.Net.Sdk.Tests.Transactions
             Assert.Equal("createKeyPage", createKeyPage.Type);
             Assert.Equal(keyPageUrl, createKeyPage.Url);
             Assert.Equal(3, createKeyPage.Keys.Count);
-            Assert.Equal(key1, createKeyPage.Keys[0]);
-            Assert.Equal(key2, createKeyPage.Keys[1]);
-            Assert.Equal(key3, createKeyPage.Keys[2]);
+            Assert.Equal(key1, createKeyPage.Keys[0].KeyHash);
+            Assert.Equal(key2, createKeyPage.Keys[1].KeyHash);
+            Assert.Equal(key3, createKeyPage.Keys[2].KeyHash);
         }
 
         [Fact]
@@ -123,8 +123,8 @@ namespace Acme.Net.Sdk.Tests.Transactions
             Assert.Equal("createKeyPage", createKeyPage.Type);
             Assert.Equal(keyPageUrl, createKeyPage.Url);
             Assert.Equal(2, createKeyPage.Keys.Count);
-            Assert.Equal(keys[0], createKeyPage.Keys[0]);
-            Assert.Equal(keys[1], createKeyPage.Keys[1]);
+            Assert.Equal(keys[0], createKeyPage.Keys[0].KeyHash);
+            Assert.Equal(keys[1], createKeyPage.Keys[1].KeyHash);
         }
 
         [Fact]
@@ -155,8 +155,8 @@ namespace Acme.Net.Sdk.Tests.Transactions
             Assert.Equal("createKeyPage", createKeyPage.Type);
             Assert.Equal(keyPageUrl, createKeyPage.Url);
             Assert.Equal(2, createKeyPage.Keys.Count);
-            Assert.Equal(keys[0], createKeyPage.Keys[0]);
-            Assert.Equal(keys[1], createKeyPage.Keys[1]);
+            Assert.Equal(keys[0], createKeyPage.Keys[0].KeyHash);
+            Assert.Equal(keys[1], createKeyPage.Keys[1].KeyHash);
         }
 
         [Fact]

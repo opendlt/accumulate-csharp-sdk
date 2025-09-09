@@ -18,6 +18,7 @@ namespace Acme.Net.Sdk.Rpc
     public class AsyncRPCClient : RPCClient
     {
         private static readonly SemaphoreSlim EnvelopeLock = new SemaphoreSlim(1, 1);
+        private static readonly TimeSpan DefaultLockTimeout = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AsyncRPCClient"/> class using environment variables for the API endpoint.
@@ -46,8 +47,8 @@ namespace Acme.Net.Sdk.Rpc
             var rpcResponse = await SendAsync(rpcMethod, body).ConfigureAwait(false);
             var txResponse = rpcResponse.AsTransactionResponse();
             
-            // TODO: Implement ResultReader.checkForErrors
-            // For now, we'll return the TxResponse without error checking
+            // Check for errors in the response
+            ResultReader.CheckForErrors(txResponse);
             return txResponse;
         }
 
@@ -58,10 +59,20 @@ namespace Acme.Net.Sdk.Rpc
         /// <returns>A task that represents the asynchronous operation. The task result contains the transaction status.</returns>
         public virtual async Task<object?> SendTxAsync(Envelope envelope)
         {
+            if (envelope == null)
+            {
+                throw new ArgumentNullException(nameof(envelope));
+            }
+
             // Using a similar approach as the Java implementation, with a semaphore for sequential processing
+            bool lockAcquired = false;
             try
             {
-                await EnvelopeLock.WaitAsync().ConfigureAwait(false);
+                lockAcquired = await EnvelopeLock.WaitAsync(DefaultLockTimeout).ConfigureAwait(false);
+                if (!lockAcquired)
+                {
+                    throw new TimeoutException($"Failed to acquire envelope lock within {DefaultLockTimeout.TotalSeconds} seconds");
+                }
                 
                 // For subclasses to override and provide alternative implementation
                 if (GetType() != typeof(AsyncRPCClient))
@@ -73,24 +84,36 @@ namespace Acme.Net.Sdk.Rpc
                 var rpcResponse = SendInternalSync(Rpc.Models.RPCMethod.ExecuteDirect, envelope);
                 var txResponse = rpcResponse.AsTransactionResponse();
                 
-                // This is a placeholder implementation until we have TransactionStatus and ResultReader
+                // Check for errors in the response first
+                ResultReader.CheckForErrors(txResponse);
+                
                 if (txResponse.Result == null)
                 {
-                    // TODO: Implement ResultReader.checkForErrors
-                    // For now, we'll return null
                     return null;
                 }
                 
-                // Placeholder implementation - would call ResultReader.readValue
-                object transactionStatus = txResponse.Result.Value;
+                // Deserialize the transaction status from the result
+                object transactionStatus;
+                try
+                {
+                    transactionStatus = ResultReader.ReadValue<TransactionStatus>(txResponse.Result.Value);
+                }
+                catch
+                {
+                    // If deserialization fails, return the raw result
+                    transactionStatus = txResponse.Result.Value;
+                }
                 
-                // TODO: Implement ResultReader.checkForErrors(txResponse, transactionStatus)
-                // For now, we'll return the transactionStatus
+                // Check for errors in both response and status
+                ResultReader.CheckForErrors(txResponse, transactionStatus);
                 return transactionStatus;
             }
             finally
             {
-                EnvelopeLock.Release();
+                if (lockAcquired)
+                {
+                    EnvelopeLock.Release();
+                }
             }
         }
 

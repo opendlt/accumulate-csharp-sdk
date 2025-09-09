@@ -79,12 +79,19 @@ namespace Acme.Net.Sdk.Signing
         /// <exception cref="NotSupportedException">Thrown if the key does not support export.</exception>
         public byte[] GetPrivateKeyBytes()
         { 
-             // Use standard export method, requires KeyExportPolicies.AllowPlaintextExport
-            if (!_key.TryExport(KeyBlobFormat.RawPrivateKey, Span<byte>.Empty, out _))
+            // Try to export the private key
+            try
             {
-                 throw new NotSupportedException("Private key export is not permitted for this key.");
+                return _key.Export(KeyBlobFormat.RawPrivateKey);
             }
-            return _key.Export(KeyBlobFormat.RawPrivateKey);
+            catch (NotSupportedException)
+            {
+                throw new NotSupportedException("Private key export is not permitted for this key.");
+            }
+            catch (InvalidOperationException)
+            {
+                throw new NotSupportedException("Private key export is not permitted for this key.");
+            }
         }
 
         /// <summary>

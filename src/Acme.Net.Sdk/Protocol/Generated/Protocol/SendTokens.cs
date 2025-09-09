@@ -139,21 +139,31 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             var marshaller = new Marshaller();
             
-            // Match the exact test vector format:
-            // Field 2 with value 30 (0x1e)
-            marshaller.WriteUInt(2, 30);
-            
-            // Field 1 with type (0x03)
+            // Field 1: type
             marshaller.WriteUInt(1, TransactionTypeCode.SendTokens);
             
-            // Field 4 with recipients
+            // Field 2: hash (optional)
+            if (!string.IsNullOrEmpty(Hash))
+            {
+                var hashBytes = Convert.FromBase64String(Hash);
+                marshaller.WriteBytes(2, hashBytes);
+            }
+            
+            // Field 3: meta (optional)
+            if (Meta != null)
+            {
+                // JRaw contains the raw JSON string, use its Value property
+                var metaString = Meta.Value?.ToString() ?? Meta.ToString();
+                var metaBytes = System.Text.Encoding.UTF8.GetBytes(metaString);
+                marshaller.WriteBytes(3, metaBytes);
+            }
+            
+            // Field 4: recipients (repeatable)
             if (Recipients != null && Recipients.Count > 0)
             {
                 foreach (var recipient in Recipients)
                 {
-                    // Field 26 (0x1a) for recipient
-                    marshaller.WriteValue(26, recipient.Url);
-                    marshaller.WriteUInt(2, recipient.Amount);
+                    marshaller.WriteValue(4, recipient);
                 }
             }
             
@@ -164,7 +174,7 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
     /// <summary>
     /// Represents a token recipient for a SendTokens transaction.
     /// </summary>
-    public class TokenRecipient
+    public class TokenRecipient : IMarshallable
     {
         /// <summary>
         /// Gets or sets the recipient URL.
@@ -182,6 +192,42 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
         {
             // Initialize with a valid URL that has an authority (host)
             Url = new Url("acc://example.acme");
+        }
+        
+        /// <inheritdoc/>
+        public byte[] MarshalBinary()
+        {
+            var marshaller = new Marshaller();
+            
+            // Field 1: url
+            if (Url != null)
+            {
+                marshaller.WriteValue(1, Url);
+            }
+            
+            // Field 2: amount (as BigInt bytes)
+            // Convert amount to bytes in big-endian format
+            var bigInt = new System.Numerics.BigInteger(Amount);
+            var amountBytes = bigInt.ToByteArray();
+            
+            // BigInteger.ToByteArray() returns little-endian with potential sign byte
+            // We need to:
+            // 1. Remove the sign byte if present (for positive numbers)
+            // 2. Reverse to big-endian
+            
+            // Check if we have a sign byte (last byte is 0 for positive numbers > 127)
+            bool hasSignByte = amountBytes.Length > 1 && amountBytes[amountBytes.Length - 1] == 0;
+            int length = hasSignByte ? amountBytes.Length - 1 : amountBytes.Length;
+            
+            var result = new byte[length];
+            for (int i = 0; i < length; i++)
+            {
+                result[i] = amountBytes[length - 1 - i];
+            }
+            
+            marshaller.WriteBytes(2, result);
+            
+            return marshaller.GetBytes();
         }
     }
 } 

@@ -110,7 +110,8 @@ namespace Acme.Net.Sdk.Tests.Transactions
         public void WithProperties_SetsProperties()
         {
             // Arrange
-            var properties = "{\"name\":\"Test Token\",\"description\":\"A test token\"}";
+            // Properties should be a URL, not JSON (per test vectors)
+            var properties = "acc://token-properties.acme";
 
             // Act
             _builder.WithProperties(properties);
@@ -119,6 +120,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
             var body = _builder.BuildTransactionBodyForTest();
             Assert.IsType<CreateToken>(body);
             Assert.NotNull(((CreateToken)body).Properties);
+            Assert.Equal(properties, ((CreateToken)body).Properties.ToString());
         }
 
         [Fact]

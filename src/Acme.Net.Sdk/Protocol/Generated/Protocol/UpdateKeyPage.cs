@@ -59,10 +59,8 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
             {
                 foreach (var operation in Operations)
                 {
-                    // TODO: Implement proper KeyPageOperation marshalling
-                    // For now, we'll need to implement the operation types
-                    byte[] operationBytes = operation.MarshalBinary();
-                    marshaller.WriteBytes(2, operationBytes);
+                    // Each operation is marshalled as a sub-message
+                    marshaller.WriteValue(2, operation);
                 }
             }
             

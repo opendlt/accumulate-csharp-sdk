@@ -17,19 +17,24 @@ namespace Acme.Net.Sdk.Protocol.Generated // Mimicking Java package structure
         // Add other types as discovered/needed
     }
     
-    // TODO: Add FromValue static method if needed, mirroring Java version, once enum values are confirmed.
-    /* Example:
+    /// <summary>
+    /// Extension methods for SignatureType enum.
+    /// </summary>
     public static class SignatureTypeExtensions
     {
+        /// <summary>
+        /// Converts a byte value to a SignatureType.
+        /// </summary>
+        /// <param name="value">The byte value to convert.</param>
+        /// <returns>The corresponding SignatureType, or UNKNOWN if the value is not recognized.</returns>
         public static SignatureType FromValue(byte value)
         {
             if (Enum.IsDefined(typeof(SignatureType), (int)value))
             {
                 return (SignatureType)value;
             }
-            // Handle invalid value, maybe return UNKNOWN or throw
-            return SignatureType.UNKNOWN; 
+            // Return UNKNOWN for unrecognized values
+            return SignatureType.UNKNOWN;
         }
     }
-    */
 }

@@ -26,7 +26,6 @@ namespace Acme.Net.Sdk.Commons.Codec
     /// such as invalid data, or characters outside of the expected range.
     /// Corresponds to the Java class io.accumulatenetwork.sdk.commons.codec.DecoderException.
     /// </summary>
-    // TODO: Consider adding [Serializable] attribute if needed for specific scenarios like remoting or binary serialization.
     public class DecoderException : Exception
     {
         /// <summary>

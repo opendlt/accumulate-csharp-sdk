@@ -96,7 +96,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
         public void WithOracle_SetsOracle()
         {
             // Arrange
-            var oracle = "signaturedata";
+            ulong oracle = 123456789;
 
             // Act
             _builder.WithOracle(oracle);
@@ -142,7 +142,7 @@ namespace Acme.Net.Sdk.Tests.Transactions
             var addCredits = (AddCredits)body;
             Assert.Equal(_defaultRecipientUrl, addCredits.Recipient?.ToString());
             Assert.Equal(new BigInteger(_defaultAmount), addCredits.Amount);
-            Assert.Null(addCredits.Oracle);
+            Assert.Equal(0ul, addCredits.Oracle);
         }
 
         [Fact]
