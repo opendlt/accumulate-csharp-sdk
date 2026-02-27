@@ -1,2 +1,45 @@
+# Build outputs
 **/obj/**
 **/bin/**
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Claude / AI artifacts
+.claude/
+tmpclaude-*
+
+# Temp markdown / analysis files (keep only README.md and CHANGELOG.md)
+*_REPORT.md
+*_RESULTS.md
+*_ANALYSIS.md
+*_PLAN.md
+GAP_ANALYSIS_AND_IMPLEMENTATION_PLAN.md
+net-c-sharp-sdk-task-*.md
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Coverage / test
+coverage/
+TestResults/
+*.log
