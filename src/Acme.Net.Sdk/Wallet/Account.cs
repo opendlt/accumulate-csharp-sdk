@@ -150,8 +150,7 @@ namespace Acme.Net.Sdk.Wallet
         /// <returns>A new account with a generated key.</returns>
         public static Account CreateWithNewKey(Url url, AccountType type, string keyId = "main")
         {
-            // Use the Ed25519SignatureKeyPair constructor directly to ensure exportable key
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             var account = new Account(url, type);
             account.AddKeyPair(keyId, keyPair, true);
             return account;

@@ -46,26 +46,19 @@ namespace Acme.Net.Sdk.Protocol
         /// <exception cref="NotSupportedException">Thrown if the specified signature type is not supported for key generation.</exception>
         public static LiteIdentityPrincipal Generate(SignatureType signatureType)
         {
-            SignatureAlgorithm algorithm;
-            if (signatureType == SignatureType.ED25519) {
-                algorithm = SignatureAlgorithm.Ed25519;
-            }
-            // TODO: Add support for other signature types if needed
-            else {
-                 throw new NotSupportedException($"Generating key pairs for signature type {signatureType} is not currently supported.");
-            }
+            SignatureAlgorithm algorithm =
+                signatureType == SignatureType.ED25519
+                    ? SignatureAlgorithm.Ed25519
+                    : throw new NotSupportedException($"Generating key pairs for signature type {signatureType} is not currently supported.");
 
-            // Create a new key using NSec
-            // Use CreationParameters with ExportPolicy = KeyExportPolicies.AllowPlaintextExport for GetPrivateKey()
             var creationParams = new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport };
-            
-            // Remove the 'using' keyword here so the key is not disposed immediately
-            Key key = Key.Create(algorithm, creationParams);
+            using var key = Key.Create(algorithm, creationParams);
 
-            // Create our SignatureKeyPair wrapper (it will hold the key)
-            var keyPair = new Acme.Net.Sdk.Signing.SignatureKeyPair(key, signatureType);
-            
-            // The LiteIdentityPrincipal constructor will store the keyPair
+            var seed32 = key.Export(KeyBlobFormat.RawPrivateKey);
+
+            if (!Acme.Net.Sdk.Signing.SignatureKeyPair.TryImportFromSecretKeyBytes(seed32, signatureType, out var keyPair))
+                throw new InvalidOperationException("Failed to import generated key into SignatureKeyPair.");
+
             return new LiteIdentityPrincipal(keyPair);
         }
 

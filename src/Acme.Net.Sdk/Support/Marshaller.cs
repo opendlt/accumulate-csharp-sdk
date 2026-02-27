@@ -195,6 +195,17 @@ namespace Acme.Net.Sdk.Support
             }
         }
 
+        public void WriteUVarint(int fieldNr, ulong value)
+        {
+            _writer.Write((byte)fieldNr);
+            while (value >= 0x80)
+            {
+                _writer.Write((byte)((value & 0x7F) | 0x80));
+                value >>= 7;
+            }
+            _writer.Write((byte)value);
+        }
+
         // Helper to check for non-byte arrays
         private static bool IsArrayButNotByteArray(object value)
         {

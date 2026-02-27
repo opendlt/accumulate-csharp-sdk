@@ -33,7 +33,7 @@ namespace Acme.Net.Sdk.Protocol.Signing
             
             // Get the public key
             var publicKey = key.Export(KeyBlobFormat.RawPublicKey);
-            string publicKeyHex = new string(Hex.EncodeHex(publicKey));
+            string publicKeyHex = new string(Hex.EncodeHex(publicKey)).ToLowerInvariant();
             
             // Compute the transaction hash if not already set
             if (transaction.Hash == null || transaction.Hash.Length == 0)
@@ -41,14 +41,14 @@ namespace Acme.Net.Sdk.Protocol.Signing
                 transaction.Hash = TransactionHasher.ComputeTransactionHash(transaction);
             }
             
-            string txHashHex = new string(Hex.EncodeHex(transaction.Hash));
+            string txHashHex = new string(Hex.EncodeHex(transaction.Hash)).ToLowerInvariant();
             
             // Use the provided timestamp or current time
-            long signatureTimestamp = timestamp ?? DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            long signatureTimestamp = timestamp ?? (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L);
             
             // Sign the transaction hash
             byte[] signatureBytes = _algorithm.Sign(key, transaction.Hash);
-            string signatureHex = new string(Hex.EncodeHex(signatureBytes));
+            string signatureHex = new string(Hex.EncodeHex(signatureBytes)).ToLowerInvariant();
             
             // Create the signature object
             return new TransactionSignature

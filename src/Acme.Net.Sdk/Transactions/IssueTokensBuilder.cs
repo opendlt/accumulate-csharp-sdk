@@ -128,11 +128,20 @@ namespace Acme.Net.Sdk.Transactions
 
             if (_useMultipleRecipients)
             {
-                // Add all recipients
+                // inside BuildTransactionBody(), in the _useMultipleRecipients branch:
+
                 foreach (var recipient in _recipients)
                 {
-                    issueTokens.AddRecipient(recipient.Url, recipient.Amount);
+                    if (recipient.Amount < 0)
+                        throw new InvalidOperationException("Amount must be non-negative");
+
+                    if (recipient.Amount > (System.Numerics.BigInteger)ulong.MaxValue)
+                        throw new OverflowException(
+                            "Amount exceeds ulong. Update Protocol.Generated.Protocol.IssueTokens to use BigInteger.");
+
+                    issueTokens.AddRecipient(recipient.Url, (ulong)recipient.Amount);
                 }
+
             }
             else
             {

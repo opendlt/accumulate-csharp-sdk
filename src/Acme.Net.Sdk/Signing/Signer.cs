@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Acme.Net.Sdk.Protocol; // For Url
 using Acme.Net.Sdk.Protocol.Generated; // Reverted to correct namespace for SignatureType, Transaction
 using Acme.Net.Sdk.Support; // For HashBuilder
+using System.Security.Cryptography;
+using System.Linq;
 
 namespace Acme.Net.Sdk.Signing
 {
@@ -12,12 +14,12 @@ namespace Acme.Net.Sdk.Signing
     /// </summary>
     public class Signer
     {
-        private InitHashMode _initMode = InitHashMode.INIT_WITH_MERKLE_HASH;
+        private InitHashMode _initMode = InitHashMode.INIT_WITH_SIMPLE_HASH;
         private SignatureType? _signatureType;
         private Url? _url;
         private int? _version;
         private readonly List<Url> _delegators = new List<Url>();
-        private long? _timestamp; // Use long? to check if set
+        private ulong? _timestamp; // Use long? to check if set
         private SignatureKeyPair? _keyPair; // Use SignatureKeyPair instead of raw private key bytes
 
         /// <summary>
@@ -32,7 +34,7 @@ namespace Acme.Net.Sdk.Signing
         /// <summary>
         /// Sets the timestamp (nonce) for the signature.
         /// </summary>
-        public Signer WithTimeStamp(long timestamp)
+        public Signer WithTimeStamp(ulong timestamp)
         {
             _timestamp = timestamp;
             return this;
@@ -43,9 +45,8 @@ namespace Acme.Net.Sdk.Signing
         /// </summary>
         public Signer WithNonceFromTimeNow()
         {
-            // .NET DateTime ticks are 100-nanosecond intervals. Convert to microseconds.
-            long microseconds = DateTime.UtcNow.Ticks / (TimeSpan.TicksPerMillisecond / 1000);
-            _timestamp = microseconds;
+            ulong micros = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000UL;
+            _timestamp = micros;
             return this;
         }
 
@@ -159,37 +160,38 @@ namespace Acme.Net.Sdk.Signing
         /// <exception cref="InvalidOperationException">Thrown if transaction header is null or required parameters are missing.</exception>
         public ISignature Initiate(Transaction transaction)
         {
-            if (transaction == null)
+            if (transaction is null) throw new ArgumentNullException(nameof(transaction));
+            if (transaction.Header is null) throw new InvalidOperationException("Transaction header cannot be null");
+            if (transaction.Body   is null) throw new InvalidOperationException("Transaction body cannot be null");
+
+            var signature = Prepare(init: true);
+
+            // --- SIMPLE (JS SDK): sha256(encode(signature-metadata)) ---
+            var meta = signature.MarshalMetadata();
+            var sigMdHash = SHA256.HashData(meta);
+
+            Console.WriteLine("[Initiator] mode=SIMPLE");
+            Console.WriteLine("[Sig.Metadata] TLV hex=" + Convert.ToHexString(meta).ToLowerInvariant());
+            Console.WriteLine("[Sig.Metadata] sha256=" + Convert.ToHexString(sigMdHash).ToLowerInvariant());
+
+            // Set header.initiator to SIMPLE hash
+            transaction.Header.WithInitiator(sigMdHash);
+
+            // Compute tx hash after setting initiator
+//            byte[] txBytes = transaction.MarshalBinary();
+            byte[] txHash = transaction.GetHash();
+            Console.WriteLine("[Header] initiator set (hex)=" + Convert.ToHexString(transaction.Header.Initiator!).ToLowerInvariant());
+            Console.WriteLine("[Tx] body+header hash (txHash)=" + Convert.ToHexString(txHash).ToLowerInvariant());
+
+            // Sign: JS SDK signs sha256(sigMdHash || txHash)
+            signature.Sign(txHash, sigMdHash, _keyPair!);
+
+            if (signature is BaseSignature bs)
             {
-                throw new ArgumentNullException(nameof(transaction));
+                Console.WriteLine($"[Signer] txHash={Convert.ToHexString(bs.TransactionHash).ToLowerInvariant()}");
+                Console.WriteLine($"[Signer] sig   ={Convert.ToHexString(bs.SignatureBytes).ToLowerInvariant()}");
             }
-            
-            if (transaction.Header == null)
-            {
-                throw new InvalidOperationException("Transaction header cannot be null");
-            }
-            
-            if (transaction.Body == null)
-            {
-                throw new InvalidOperationException("Transaction body cannot be null");
-            }
-            
-            // Prepare the signature (for initiation, so pass true)
-            var signature = Prepare(true);
-            
-            // Get metadata hash based on init mode
-            byte[] metadataHash = GetMetadataHash(signature);
-            
-            // Set the initiator hash on the transaction header
-            transaction.Header.Initiator = metadataHash;
-            
-            // NOW compute transaction hash AFTER setting initiator
-            // Force computation - don't use reference hash
-            byte[] txHash = TransactionHasher.ComputeRawHash(transaction);
-            
-            // Sign the transaction hash
-            signature.Sign(txHash, metadataHash, _keyPair!);
-            
+
             return signature;
         }
 
@@ -222,16 +224,9 @@ namespace Acme.Net.Sdk.Signing
         /// <returns>The metadata hash.</returns>
         private byte[] GetMetadataHash(ISignature signature)
         {
-            var hashBuilder = signature.GetInitiatorHashBuilder();
-            
-            switch (_initMode)
-            {
-                case InitHashMode.INIT_WITH_SIMPLE_HASH:
-                    return hashBuilder.GetCheckSum();
-                case InitHashMode.INIT_WITH_MERKLE_HASH:
-                default:
-                    return hashBuilder.MerkleHash();
-            }
+            // Node canonical rule: initiator = sha256(signature.metadata TLV)
+            var meta = signature.MarshalMetadata();
+            return SHA256.HashData(meta);
         }
 
         private void Validate(bool init)

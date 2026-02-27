@@ -157,8 +157,10 @@ namespace Acme.Net.Sdk.Transactions
             return new Dictionary<string, object?>
             {
                 ["type"] = "transferCredits",
-                ["to"] = toUrl,
-                ["amount"] = amount,
+                ["to"] = new List<Dictionary<string, object?>>
+                {
+                    new Dictionary<string, object?> { ["url"] = toUrl, ["amount"] = amount }
+                },
             };
         }
 

@@ -103,19 +103,20 @@ namespace Acme.Net.Sdk.Protocol
         // Helper to generate a new key pair
         private static Acme.Net.Sdk.Signing.SignatureKeyPair GenerateNewKeyPair(SignatureType signatureType)
         {
-             SignatureAlgorithm algorithm;
-            if (signatureType == SignatureType.ED25519)
-            {
-                algorithm = SignatureAlgorithm.Ed25519;
-            }
-            // TODO: Add support for other signature types if needed
-            else
-            {
-                 throw new NotSupportedException($"Generating key pairs for signature type {signatureType} is not currently supported.");
-            }
+            SignatureAlgorithm algorithm =
+                signatureType == SignatureType.ED25519
+                    ? SignatureAlgorithm.Ed25519
+                    : throw new NotSupportedException($"Generating key pairs for signature type {signatureType} is not currently supported.");
+
             var creationParams = new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport };
             using var key = Key.Create(algorithm, creationParams);
-            return new Acme.Net.Sdk.Signing.SignatureKeyPair(key, signatureType);
+
+            var seed32 = key.Export(KeyBlobFormat.RawPrivateKey);
+
+            if (!Acme.Net.Sdk.Signing.SignatureKeyPair.TryImportFromSecretKeyBytes(seed32, signatureType, out var keyPair))
+                throw new InvalidOperationException("Failed to import generated key into SignatureKeyPair.");
+
+            return keyPair;
         }
 
         /// <summary>

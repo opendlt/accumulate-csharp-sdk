@@ -45,7 +45,14 @@ namespace Acme.Net.Sdk.Signing
         public static SignatureKeyPair GenerateSignatureKeyPair(SignatureType signatureType)
         {
             Key key = GenerateKey(signatureType);
-            return new SignatureKeyPair(key, signatureType);
+
+            // Export the 32-byte seed and re-import through our canonical class
+            var seed32 = key.Export(KeyBlobFormat.RawPrivateKey);
+
+            if (!SignatureKeyPair.TryImportFromSecretKeyBytes(seed32, signatureType, out var keyPair))
+                throw new InvalidOperationException("Failed to import generated key into SignatureKeyPair.");
+
+            return keyPair;
         }
     }
 } 

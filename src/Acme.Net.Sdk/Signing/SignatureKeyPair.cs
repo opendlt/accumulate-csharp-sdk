@@ -1,119 +1,106 @@
-using NSec.Cryptography;
-using Acme.Net.Sdk.Protocol.Generated; // Reverted to correct namespace for SignatureType
 using System;
-using System.Diagnostics.CodeAnalysis; // For TryParse
+using System.Diagnostics.CodeAnalysis;
+using NSec.Cryptography;
+using Acme.Net.Sdk.Protocol.Generated; // SignatureType
 
 namespace Acme.Net.Sdk.Signing
 {
     /// <summary>
-    /// Represents a key pair used for a specific Accumulate signature type.
-    /// Encapsulates the NSec Key object and the associated SignatureType.
+    /// Canonical key pair for Accumulate signing. Always derives the public key
+    /// and the signing key from the EXACT SAME 32-byte Ed25519 seed via NSec.
     /// </summary>
-    public class SignatureKeyPair
+    public sealed class SignatureKeyPair : IDisposable
     {
-        private readonly Key _key;
+        private readonly byte[] _seed32;   // immutable 32-byte Ed25519 seed
+        private readonly byte[] _pub32;    // derived from _seed32 once
+        private Key? _key;                 // NSec Key from _seed32 (lazy); disposable
 
-        /// <summary>
-        /// Gets the Accumulate signature type associated with this key pair.
-        /// </summary>
         public SignatureType Type { get; }
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="SignatureKeyPair"/> class.
-        /// Internal constructor to force creation via factory method for imported keys.
-        /// </summary>
-        internal SignatureKeyPair(Key key, SignatureType type)
+        private static readonly SignatureAlgorithm Alg = SignatureAlgorithm.Ed25519;
+
+        private SignatureKeyPair(byte[] seed32)
         {
-            _key = key ?? throw new ArgumentNullException(nameof(key));
-            Type = type;
+            Type    = SignatureType.ED25519;
+            _seed32 = (byte[])seed32.Clone();
+
+            // Derive pub once from the seed (guarantees same derivation as signing)
+            using var k = Key.Import(Alg, _seed32, KeyBlobFormat.RawPrivateKey,
+                new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
+
+            _pub32 = k.Export(KeyBlobFormat.RawPublicKey);
         }
 
         /// <summary>
-        /// Imports a key pair from raw secret key bytes and the signature type.
+        /// Accepts a 32-byte Ed25519 seed. If 64 bytes are provided (seed||pub),
+        /// we take the first 32 as seed (common format from some libs).
         /// </summary>
-        /// <param name="secretKey">The raw secret key bytes.</param>
-        /// <param name="type">The signature type.</param>
-        /// <param name="keyPair">The resulting key pair if import is successful.</param>
-        /// <returns>True if the key was imported successfully, false otherwise.</returns>
-        /// <exception cref="NotSupportedException">Thrown if the signature type is not supported for import.</exception>
-        public static bool TryImportFromSecretKeyBytes(byte[] secretKey, SignatureType type, [MaybeNullWhen(false)] out SignatureKeyPair keyPair)
+        public static bool TryImportFromSecretKeyBytes(ReadOnlySpan<byte> secret, SignatureType type,
+            [MaybeNullWhen(false)] out SignatureKeyPair keyPair)
         {
             keyPair = null;
-            if (secretKey == null) return false;
+            if (type != SignatureType.ED25519) return false;
 
-            SignatureAlgorithm algorithm;
-            KeyBlobFormat importFormat = KeyBlobFormat.RawPrivateKey;
-
-            switch (type)
+            byte[] seed32;
+            if (secret.Length == 32)
             {
-                case SignatureType.ED25519:
-                    algorithm = SignatureAlgorithm.Ed25519;
-                    // NSec expects 32 bytes for Ed25519 RawPrivateKey
-                    if (secretKey.Length != 32) return false; 
-                    break;
-                // Add RCD1 case if needed (might be same as ED25519?)
-                default:
-                    throw new NotSupportedException($"Importing key pairs for signature type {type} is not currently supported.");
+                seed32 = secret.ToArray();
+            }
+            else if (secret.Length == 64)
+            {
+                // seed || pub (ignore trailing 32 bytes)
+                seed32 = secret.Slice(0, 32).ToArray();
+            }
+            else
+            {
+                return false;
             }
 
-            var creationParams = new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport };
-            Key? importedKey = null;
-            
             try
             {
-                importedKey = Key.Import(algorithm, secretKey, importFormat, creationParams);
-                keyPair = new SignatureKeyPair(importedKey, type);
+                keyPair = new SignatureKeyPair(seed32);
+
+                // Debug logging (safe): show derived public key so you can compare with on-chain key page
+                Console.WriteLine("[SignatureKeyPair] Imported Ed25519 seed (32 bytes).");
+                Console.WriteLine("[SignatureKeyPair] Derived pubkey (hex): " + Convert.ToHexString(keyPair._pub32).ToLowerInvariant());
+
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine("[SignatureKeyPair] Import failed: " + ex.Message);
                 keyPair = null;
                 return false;
             }
         }
-        
-        /// <summary>
-        /// Exports the private key bytes if permitted by the key's export policy.
-        /// </summary>
-        /// <returns>The raw private key bytes.</returns>
-        /// <exception cref="NotSupportedException">Thrown if the key does not support export.</exception>
-        public byte[] GetPrivateKeyBytes()
-        { 
-            // Try to export the private key
-            try
-            {
-                return _key.Export(KeyBlobFormat.RawPrivateKey);
-            }
-            catch (NotSupportedException)
-            {
-                throw new NotSupportedException("Private key export is not permitted for this key.");
-            }
-            catch (InvalidOperationException)
-            {
-                throw new NotSupportedException("Private key export is not permitted for this key.");
-            }
-        }
 
         /// <summary>
-        /// Gets the public key bytes.
+        /// Lazily create (or reuse) the NSec Key imported from the stored seed.
         /// </summary>
-        /// <returns>A byte array containing the public key.</returns>
-        public byte[] GetPublicKey()
-        {
-            // Exporting the public key in raw format.
-            return _key.PublicKey.Export(KeyBlobFormat.RawPublicKey);
-        }
-
-        /// <summary>
-        /// Gets the underlying NSec Key object.
-        /// Use with caution, as it may provide access to private key material depending on how the Key was created.
-        /// </summary>
-        /// <returns>The NSec Key object.</returns>
         internal Key GetKey()
         {
-             return _key;
+            if (_key is not null) return _key;
+
+            _key = Key.Import(Alg, _seed32, KeyBlobFormat.RawPrivateKey,
+                new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
+
+            return _key;
         }
-        
-        // Consider adding Sign/Verify methods here later if needed.
+
+        /// <summary>
+        /// Return a copy of the raw 32-byte public key.
+        /// </summary>
+        public byte[] GetPublicKey() => (byte[])_pub32.Clone();
+
+        /// <summary>
+        /// (Optional) Raw 32-byte seed export. Use sparingly.
+        /// </summary>
+        public byte[] GetPrivateKeyBytes() => (byte[])_seed32.Clone();
+
+        public void Dispose()
+        {
+            _key?.Dispose();
+            _key = null;
+        }
     }
 }

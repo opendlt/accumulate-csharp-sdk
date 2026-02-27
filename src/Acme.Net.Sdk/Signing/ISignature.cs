@@ -64,5 +64,8 @@ namespace Acme.Net.Sdk.Signing
         /// </summary>
         /// <returns>The generated Signature object.</returns>
         Protocol.Generated.Signature GetModel(); // Using the base generated Signature type
+
+        /// <summary>Encode only the signature metadata TLV (01,02,04,05,06).</summary>
+        byte[] MarshalMetadata();
     }
 }

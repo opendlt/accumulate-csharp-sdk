@@ -3,117 +3,127 @@ namespace Acme.Net.Sdk.Protocol
     /// <summary>
     /// Defines the numeric type codes for transaction types in the Accumulate protocol.
     /// These codes are used in the binary marshalling format.
+    /// Values match the authoritative Go core / Rust SDK definitions.
     /// </summary>
     public static class TransactionTypeCode
     {
-        /// <summary>
-        /// Unknown represents an unknown transaction type.
-        /// </summary>
+        // ---- User transactions ----
+
         public const int Unknown = 0;
-
-        /// <summary>
-        /// CreateIdentity creates an ADI, which produces a synthetic chain.
-        /// </summary>
         public const int CreateIdentity = 1;
-
-        /// <summary>
-        /// CreateTokenAccount creates an ADI token account, which produces a synthetic chain create transaction.
-        /// </summary>
         public const int CreateTokenAccount = 2;
-
-        /// <summary>
-        /// SendTokens transfers tokens between token accounts, which produces a synthetic deposit tokens transaction.
-        /// </summary>
         public const int SendTokens = 3;
-
-        /// <summary>
-        /// CreateDataAccount creates an ADI Data Account, which produces a synthetic chain create transaction.
-        /// </summary>
         public const int CreateDataAccount = 4;
-
-        /// <summary>
-        /// WriteData writes data to an ADI Data Account, which does not produce a synthetic transaction.
-        /// </summary>
         public const int WriteData = 5;
-
-        /// <summary>
-        /// WriteDataTo writes data to a Lite Data Account, which produces a synthetic write data transaction.
-        /// </summary>
         public const int WriteDataTo = 6;
-
-        /// <summary>
-        /// AcmeFaucet produces a synthetic deposit tokens transaction that deposits ACME tokens into a lite token account.
-        /// </summary>
         public const int AcmeFaucet = 7;
-
-        /// <summary>
-        /// CreateToken creates a token issuer, which produces a synthetic chain create transaction.
-        /// </summary>
         public const int CreateToken = 8;
-
-        /// <summary>
-        /// IssueTokens issues tokens to a token account, which produces a synthetic token deposit transaction.
-        /// </summary>
         public const int IssueTokens = 9;
-
-        /// <summary>
-        /// BurnTokens burns tokens from a token account, which produces a synthetic burn tokens transaction.
-        /// </summary>
         public const int BurnTokens = 10;
-
-        /// <summary>
-        /// CreateLiteTokenAccount creates a lite token account.
-        /// </summary>
         public const int CreateLiteTokenAccount = 11;
-
-        /// <summary>
-        /// CreateKeyPage creates a key page, which produces a synthetic chain create transaction.
-        /// </summary>
         public const int CreateKeyPage = 12;
-
-        /// <summary>
-        /// CreateKeyBook creates a key book, which produces a synthetic chain create transaction.
-        /// </summary>
         public const int CreateKeyBook = 13;
-
-        /// <summary>
-        /// AddCredits converts ACME tokens to credits, which produces a synthetic deposit credits transaction.
-        /// </summary>
         public const int AddCredits = 14;
-
-        /// <summary>
-        /// UpdateKeyPage adds, removes, or updates keys in a key page, which does not produce a synthetic transaction.
-        /// </summary>
         public const int UpdateKeyPage = 15;
+        public const int LockAccount = 16;
+        public const int BurnCredits = 17;
+        public const int TransferCredits = 18;
+        // 19-20 unused
+        public const int UpdateAccountAuth = 21;
+        public const int UpdateKey = 22;
 
-        /// <summary>
-        /// Remote is used to sign a remote transaction (SignPending).
-        /// </summary>
+        // ---- Network/system transactions ----
+
+        public const int NetworkMaintenance = 46;
+        public const int ActivateProtocolVersion = 47;
         public const int Remote = 48;
 
-        /// <summary>
-        /// SyntheticCreateIdentity creates an identity.
-        /// </summary>
+        // ---- Synthetic transactions ----
+
         public const int SyntheticCreateIdentity = 49;
-
-        /// <summary>
-        /// SyntheticWriteData writes data to a data account.
-        /// </summary>
         public const int SyntheticWriteData = 50;
-
-        /// <summary>
-        /// SyntheticDepositTokens deposits tokens into token accounts.
-        /// </summary>
         public const int SyntheticDepositTokens = 51;
-
-        /// <summary>
-        /// SyntheticDepositCredits deposits credits into a credit holder.
-        /// </summary>
         public const int SyntheticDepositCredits = 52;
+        public const int SyntheticBurnTokens = 53;
+        public const int SyntheticForwardTransaction = 54;
+
+        // ---- System transactions ----
+
+        public const int SystemGenesis = 96;
+        public const int DirectoryAnchor = 97;
+        public const int BlockValidatorAnchor = 98;
+        public const int SystemWriteData = 99;
+
+        private static readonly Dictionary<int, string> _codeToApiName;
+        private static readonly Dictionary<string, int> _apiNameToCode;
+
+        static TransactionTypeCode()
+        {
+            _codeToApiName = new Dictionary<int, string>
+            {
+                [Unknown] = "unknown",
+                [CreateIdentity] = "createIdentity",
+                [CreateTokenAccount] = "createTokenAccount",
+                [SendTokens] = "sendTokens",
+                [CreateDataAccount] = "createDataAccount",
+                [WriteData] = "writeData",
+                [WriteDataTo] = "writeDataTo",
+                [AcmeFaucet] = "acmeFaucet",
+                [CreateToken] = "createToken",
+                [IssueTokens] = "issueTokens",
+                [BurnTokens] = "burnTokens",
+                [CreateLiteTokenAccount] = "createLiteTokenAccount",
+                [CreateKeyPage] = "createKeyPage",
+                [CreateKeyBook] = "createKeyBook",
+                [AddCredits] = "addCredits",
+                [UpdateKeyPage] = "updateKeyPage",
+                [UpdateAccountAuth] = "updateAccountAuth",
+                [UpdateKey] = "updateKey",
+                [LockAccount] = "lockAccount",
+                [TransferCredits] = "transferCredits",
+                [BurnCredits] = "burnCredits",
+                [NetworkMaintenance] = "networkMaintenance",
+                [ActivateProtocolVersion] = "activateProtocolVersion",
+                [Remote] = "remote",
+                [SyntheticCreateIdentity] = "syntheticCreateIdentity",
+                [SyntheticWriteData] = "syntheticWriteData",
+                [SyntheticDepositTokens] = "syntheticDepositTokens",
+                [SyntheticDepositCredits] = "syntheticDepositCredits",
+                [SyntheticBurnTokens] = "syntheticBurnTokens",
+                [SyntheticForwardTransaction] = "syntheticForwardTransaction",
+                [SystemGenesis] = "systemGenesis",
+                [DirectoryAnchor] = "directoryAnchor",
+                [BlockValidatorAnchor] = "blockValidatorAnchor",
+                [SystemWriteData] = "systemWriteData",
+            };
+
+            _apiNameToCode = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kvp in _codeToApiName)
+            {
+                _apiNameToCode[kvp.Value] = kvp.Key;
+            }
+        }
 
         /// <summary>
-        /// SyntheticBurnTokens returns tokens to a token issuer's pool of issuable tokens.
+        /// Gets the camelCase API/wire name for a transaction type code.
+        /// Returns "unknown" if the code is not recognized.
         /// </summary>
-        public const int SyntheticBurnTokens = 53;
+        public static string GetApiName(int code)
+        {
+            if (_codeToApiName.TryGetValue(code, out var name))
+                return name;
+            return "unknown";
+        }
+
+        /// <summary>
+        /// Gets the transaction type code for a camelCase API/wire name.
+        /// Returns <see cref="Unknown"/> (0) if the name is not recognized.
+        /// </summary>
+        public static int FromApiName(string name)
+        {
+            if (name != null && _apiNameToCode.TryGetValue(name, out var code))
+                return code;
+            return Unknown;
+        }
     }
 }

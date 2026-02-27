@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography; 
 using Newtonsoft.Json; // For JsonIgnore
 using Acme.Net.Sdk.Support; // For Marshaller
 using Acme.Net.Sdk.Protocol; // For IMarshallable
@@ -34,18 +35,50 @@ namespace Acme.Net.Sdk.Protocol.Generated
         /// Field 2: Body
         /// </summary>
         /// <returns>A byte array containing the marshalled data.</returns>
+        // src/Acme.Net.Sdk/Protocol/Generated/Transaction.cs
         public byte[] MarshalBinary()
         {
-            var marshaller = new Marshaller();
+            var m = new Marshaller();
+
             if (Header != null)
-            {
-                marshaller.WriteValue(1, Header); // Assumes TransactionHeader implements IMarshallable
-            }
+                m.WriteValue(1, Header);   // tag 1 → header TLV
+
             if (Body != null)
+                m.WriteValue(2, Body);     // tag 2 → body TLV
+
+            return m.GetBytes();
+        }
+        
+        /// <summary>
+        /// Go-compatible tx hash: SHA256( SHA256(headerTLV) || SHA256(bodyTLV) )
+        /// </summary>
+        public byte[] GetHash()
+        {
+            if (Hash != null) return Hash;
+
+            // H(header)
+            var headerBytes = Header?.MarshalBinary() ?? Array.Empty<byte>();
+            var headerHash  = SHA256.HashData(headerBytes);
+
+            // H(body) or body.GetHash() if the body overrides
+            byte[] bodyHash;
+            if (Body is IHasCustomHash custom)
             {
-                marshaller.WriteValue(2, Body); // Assumes TransactionBody implements IMarshallable
+                bodyHash = custom.GetHash();
             }
-            return marshaller.GetBytes();
+            else
+            {
+                var bodyBytes = Body?.MarshalBinary() ?? Array.Empty<byte>();
+                bodyHash = SHA256.HashData(bodyBytes);
+            }
+
+            // SHA256( H(header) || H(body) )
+            var concat = new byte[headerHash.Length + bodyHash.Length];
+            Buffer.BlockCopy(headerHash, 0, concat, 0, headerHash.Length);
+            Buffer.BlockCopy(bodyHash,  0, concat, headerHash.Length, bodyHash.Length);
+
+            Hash = SHA256.HashData(concat);
+            return Hash;
         }
     }
 }

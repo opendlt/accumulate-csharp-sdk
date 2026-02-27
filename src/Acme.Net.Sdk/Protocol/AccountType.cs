@@ -1,23 +1,56 @@
+using System.Runtime.Serialization;
+
 namespace Acme.Net.Sdk.Protocol.Generated // Mimicking Java package structure
 {
     /// <summary>
-    /// Placeholder for the generated AccountType enum.
     /// Defines different types of Accumulate accounts.
-    /// Values need to be confirmed/updated when actual generated code is available.
+    /// Values match the authoritative Go core / Rust SDK definitions.
     /// </summary>
     public enum AccountType
     {
-        UNKNOWN = 0, // Default/Unknown type
-        IDENTITY = 1, // Corresponds to ADI
+        [EnumMember(Value = "unknown")]
+        UNKNOWN = 0,
+
+        [EnumMember(Value = "identity")]
+        IDENTITY = 1,
+
+        [EnumMember(Value = "tokenIssuer")]
         TOKEN_ISSUER = 2,
+
+        [EnumMember(Value = "tokenAccount")]
         TOKEN_ACCOUNT = 3,
+
+        [EnumMember(Value = "liteTokenAccount")]
         LITE_TOKEN_ACCOUNT = 4,
+
+        [EnumMember(Value = "keyPage")]
         KEY_PAGE = 5,
+
+        [EnumMember(Value = "keyBook")]
         KEY_BOOK = 6,
+
+        [EnumMember(Value = "dataAccount")]
         DATA_ACCOUNT = 7,
+
+        [EnumMember(Value = "liteDataAccount")]
         LITE_DATA_ACCOUNT = 8,
+
+        [EnumMember(Value = "unknownSigner")]
         UNKNOWN_SIGNER = 9,
+
+        [EnumMember(Value = "liteIdentity")]
         LITE_IDENTITY = 10,
-        // Add other types as discovered/needed
+
+        [EnumMember(Value = "anchorLedger")]
+        ANCHOR_LEDGER = 16,
+
+        [EnumMember(Value = "blockLedger")]
+        BLOCK_LEDGER = 17,
+
+        [EnumMember(Value = "systemLedger")]
+        SYSTEM_LEDGER = 18,
+
+        [EnumMember(Value = "syntheticLedger")]
+        SYNTHETIC_LEDGER = 19,
     }
 }

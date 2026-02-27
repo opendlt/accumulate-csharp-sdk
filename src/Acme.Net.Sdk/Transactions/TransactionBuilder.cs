@@ -7,6 +7,7 @@ using Acme.Net.Sdk.Protocol.Generated;
 using Acme.Net.Sdk.Rpc;
 using Acme.Net.Sdk.Signing;
 using System.Text.Json;
+using System.Security.Cryptography;
 
 namespace Acme.Net.Sdk.Transactions
 {
@@ -160,13 +161,33 @@ namespace Acme.Net.Sdk.Transactions
             var signature = Signer.Initiate(transaction);
             
             // Get the transaction hash
-            byte[] txHash = TransactionHasher.ComputeTransactionHash(transaction);
-            
+//            byte[] txHash = TransactionHasher.ComputeTransactionHash(transaction);
+
+            // === NEW DEBUG LOGGING ===
+            var txBytes = transaction.MarshalBinary();
+            Console.WriteLine("Tx TLV (hex): " + Convert.ToHexString(txBytes).ToLowerInvariant());
+            Console.WriteLine("Tx SHA256: " + Convert.ToHexString(SHA256.HashData(txBytes)).ToLowerInvariant());
+
+            // Dump header separately
+            var hdrBytes = transaction.Header.MarshalBinary();
+            Console.WriteLine("Header TLV (hex): " + Convert.ToHexString(hdrBytes).ToLowerInvariant());
+            Console.WriteLine("Header SHA256: " + Convert.ToHexString(SHA256.HashData(hdrBytes)).ToLowerInvariant());
+
+            // Dump body separately
+            var bodyBytes = transaction.Body.MarshalBinary();
+            Console.WriteLine("Body TLV (hex): " + Convert.ToHexString(bodyBytes).ToLowerInvariant());
+            Console.WriteLine("Body SHA256: " + Convert.ToHexString(SHA256.HashData(bodyBytes)).ToLowerInvariant());
+
+            // Dump signature TLV
+            var sigBytes = signature.MarshalBinary();
+            Console.WriteLine("Signature TLV (hex): " + Convert.ToHexString(sigBytes).ToLowerInvariant());
+            Console.WriteLine("Signature SHA256: " + Convert.ToHexString(SHA256.HashData(sigBytes)).ToLowerInvariant());
+
             // Create an envelope and add the transaction and signature
             var envelope = new EnvelopeBuilder()
                 .AddTransaction(transaction)
                 .AddSignature(signature)
-                .SetTxHash(BitConverter.ToString(txHash).Replace("-", "").ToLowerInvariant())
+//                .SetTxHash(BitConverter.ToString(txHash).Replace("-", "").ToLowerInvariant())
                 .Build();
             
             // Submit the envelope using AsyncRPCClient

@@ -34,7 +34,7 @@ namespace Acme.Net.Sdk.Signing
         /// <summary>
         /// Gets or sets the timestamp (nonce) for the signature.
         /// </summary>
-        public long Timestamp { get; set; }
+        public ulong Timestamp { get; set; }
 
         /// <summary>
         /// Gets or sets the version of the signature.
@@ -69,49 +69,42 @@ namespace Acme.Net.Sdk.Signing
         public virtual HashBuilder GetInitiatorHashBuilder()
         {
             var builder = new HashBuilder();
-            
-            // Add signature type first
+
+            // Canonical order the node expects:
+            // 1) type  2) timestamp  3) signer URL  4) signer version  5) public key
             builder.AddUInt((ulong)Type);
-            
-            // Then add public key
-            if (PublicKey.Length > 0)
-            {
-                builder.AddBytes(PublicKey);
-            }
-            
-            // Then add signer URL
+            builder.AddUInt((ulong)Timestamp);
+
             if (SignerUrl != null)
-            {
                 builder.AddUrl(SignerUrl);
-            }
-            
-            // Then add version using AddUInt
-            builder.AddUInt(Version);
-            
-            // Then add timestamp using AddUInt
-            builder.AddUInt(Timestamp);
-            
+
+            builder.AddUInt((ulong)Version);
+
+            if (PublicKey.Length > 0)
+                builder.AddBytes(PublicKey);
+
             return builder;
         }
 
         /// <summary>
         /// Performs the cryptographic signing operation.
         /// </summary>
-        /// <param name="txHash">The hash of the transaction body.</param>
-        /// <param name="metadataHash">The hash of the marshalled signature metadata.</param>
-        /// <param name="keyPair">The key pair to use for signing.</param>
         public abstract void Sign(byte[] txHash, byte[] metadataHash, SignatureKeyPair keyPair);
 
         /// <summary>
-        /// Marshals the signature object into its binary representation.
+        /// Encode only the signature metadata TLV (01,02,04,05,06).
+        /// Implemented by concrete signature types.
         /// </summary>
-        /// <returns>A byte array containing the marshalled signature.</returns>
+        public abstract byte[] MarshalMetadata();
+
+        /// <summary>
+        /// Marshals the full signature (including signature bytes and tx hash).
+        /// </summary>
         public abstract byte[] MarshalBinary();
 
         /// <summary>
         /// Gets the underlying generated signature model object.
         /// </summary>
-        /// <returns>The generated Signature object.</returns>
         public abstract Protocol.Generated.Signature GetModel();
     }
 } 
