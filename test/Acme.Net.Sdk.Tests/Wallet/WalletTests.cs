@@ -79,9 +79,9 @@ namespace Acme.Net.Sdk.Tests.Wallet
         }
         
         // Helper method to create an ED25519 key pair for testing
-        private Ed25519SignatureKeyPair CreateKeyPair()
+        private Acme.Net.Sdk.Signing.SignatureKeyPair CreateKeyPair()
         {
-            return new Ed25519SignatureKeyPair();
+            return AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
         }
         
         [Fact]

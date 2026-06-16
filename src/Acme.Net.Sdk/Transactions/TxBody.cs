@@ -304,6 +304,30 @@ namespace Acme.Net.Sdk.Transactions
             };
         }
 
+        // ---- Remote (sign-pending) ----
+
+        /// <summary>
+        /// Builds a <c>remote</c> transaction body that references an already-existing transaction
+        /// by its hash. This is the body used to add a signature to a PENDING transaction (the
+        /// "sign pending" flow) without re-supplying the original transaction's full body.
+        /// <para>
+        /// Matches Go core: <c>RemoteTransaction</c> whose <c>GetHash()</c> returns the embedded
+        /// hash directly (see <c>protocol/transaction_hash.go</c> <c>calcHash</c>), so a co-signer
+        /// signs the SAME transaction hash the initiator signed.
+        /// </para>
+        /// </summary>
+        /// <param name="transactionHashHex">Lower-case hex of the 32-byte transaction hash to sign.</param>
+        public static Dictionary<string, object?> Remote(string transactionHashHex)
+        {
+            if (string.IsNullOrEmpty(transactionHashHex))
+                throw new ArgumentException("transactionHashHex is required", nameof(transactionHashHex));
+            return new Dictionary<string, object?>
+            {
+                ["type"] = "remote",
+                ["hash"] = transactionHashHex,
+            };
+        }
+
         // ---- Other ----
 
         public static Dictionary<string, object?> AcmeFaucet(string url)

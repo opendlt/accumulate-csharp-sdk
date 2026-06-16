@@ -210,10 +210,15 @@ namespace Acme.Net.Sdk.Signing
             
             // Prepare the signature (not for initiation, so pass false)
             var signature = Prepare(false);
-            
+
+            // Additional (non-initiating) signatures still sign sha256(sigMdHash || txHash), where
+            // sigMdHash is THIS signer's own 32-byte metadata hash (same construction as Initiate()).
+            // The previous empty-byte placeholder is rejected by Ed25519Signature.Sign's length check.
+            var sigMdHash = SHA256.HashData(signature.MarshalMetadata());
+
             // Validate will throw if _keyPair is null, so it's safe to use ! here
-            signature.Sign(hash, new byte[0], _keyPair!);
-            
+            signature.Sign(hash, sigMdHash, _keyPair!);
+
             return signature;
         }
 

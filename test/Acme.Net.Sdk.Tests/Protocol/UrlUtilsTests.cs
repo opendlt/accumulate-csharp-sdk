@@ -1,5 +1,6 @@
 using System;
 using Acme.Net.Sdk.Protocol;
+using Acme.Net.Sdk.Protocol.Generated;
 using Acme.Net.Sdk.Signing;
 using Xunit;
 
@@ -11,7 +12,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void ComputeLiteIdentityUrl_WithValidPublicKey_ReturnsCorrectUrl()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             byte[] publicKey = keyPair.GetPublicKey();
             
             // Act - explicitly call method with byte[] parameter
@@ -28,7 +29,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void ComputeLiteIdentityUrl_WithKeyPair_ReturnsCorrectUrl()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             byte[] publicKey = keyPair.GetPublicKey();
             
             // Act - explicitly call method with byte[] parameter 
@@ -45,7 +46,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void ComputeLiteTokenAccountUrl_WithValidInputs_ReturnsCorrectUrl()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             byte[] publicKey = keyPair.GetPublicKey();
             var tokenUrl = Url.Parse("acc://ACME");
             
@@ -73,7 +74,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void ComputeLiteTokenAccountUrl_WithKeyPair_ReturnsCorrectUrl()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             byte[] publicKey = keyPair.GetPublicKey();
             var tokenUrl = Url.Parse("acc://ACME");
             
@@ -91,7 +92,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void ComputeAcmeLiteTokenAccountUrl_WithPublicKey_ReturnsCorrectUrl()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             byte[] publicKey = keyPair.GetPublicKey();
             
             // Act - explicitly call method with byte[] parameter
@@ -108,7 +109,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void ComputeAcmeLiteTokenAccountUrl_WithKeyPair_ReturnsCorrectUrl()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             byte[] publicKey = keyPair.GetPublicKey();
             
             // Act - explicitly call method with byte[] parameter
@@ -215,7 +216,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void IsLiteIdentityUrl_WithValidLiteIdentityUrl_ReturnsTrue()
         {
             // Arrange - use public key directly
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             var url = UrlUtils.ComputeLiteIdentityUrl(keyPair.GetPublicKey());
             
             // Act
@@ -242,7 +243,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void IsLiteTokenAccountUrl_WithValidLiteTokenAccountUrl_ReturnsTrue()
         {
             // Arrange - use public key directly
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             var url = UrlUtils.ComputeAcmeLiteTokenAccountUrl(keyPair.GetPublicKey());
             
             // Act

@@ -48,7 +48,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void LiteTokenAccountPrincipal_CreatesCorrectAccount()
         {
             // Arrange & Act
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             var principal = new LiteTokenAccountPrincipal(keyPair);
             
             // Assert
@@ -65,7 +65,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void LiteTokenAccountPrincipal_WithTokenUrl_CreatesCorrectAccount()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             var tokenUrl = Url.Parse("acc://TestToken");
             
             // Act
@@ -84,7 +84,7 @@ namespace Acme.Net.Sdk.Tests.Protocol
         public void LiteIdentityPrincipal_CreatesCorrectAccount()
         {
             // Arrange & Act
-            var keyPair = new Ed25519SignatureKeyPair();
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
             var principal = new LiteIdentityPrincipal(keyPair);
             
             // Assert

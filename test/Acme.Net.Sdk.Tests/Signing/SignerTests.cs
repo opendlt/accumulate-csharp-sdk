@@ -101,15 +101,15 @@ namespace Acme.Net.Sdk.Tests.Signing
             // Assert
             Assert.NotNull(signature);
             Assert.Equal(1, ((BaseSignature)signature).Version);
-            Assert.Equal(12345, ((BaseSignature)signature).Timestamp);
+            Assert.Equal(12345UL, ((BaseSignature)signature).Timestamp);
         }
 
         [Fact]
         public void SignAdditional_WithValidHash_ReturnsSignedSignature()
         {
             // Arrange
-            var keyPair = new Ed25519SignatureKeyPair();
-            var hash = new byte[] { 1, 2, 3, 4, 5 };
+            var keyPair = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
+            var hash = new byte[32]; // txHash must be a 32-byte hash (signature is marshalled on Sign)
             var signer = new Signer()
                 .WithUrl(new Url("acc://example.acme"))
                 .WithKeyPair(keyPair)

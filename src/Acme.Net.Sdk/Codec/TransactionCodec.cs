@@ -345,9 +345,12 @@ namespace Acme.Net.Sdk.Codec
         }
 
         /// <summary>
-        /// Marshal signature metadata to binary TLV.
-        /// Fields: 1=Type, 2=PublicKey, 4=Signer, 5=SignerVersion, 6=Timestamp, 7=Vote
-        /// Optional: 10=Memo, 11=Data
+        /// Marshal signature metadata to binary TLV. Field numbers MUST match Go core's generated
+        /// marshaler for ED25519Signature (types_gen.go): the metadata is the signature with the
+        /// Signature (tag 3) and TransactionHash (tag 8) fields cleared.
+        ///   1=Type, 2=PublicKey, 4=Signer, 5=SignerVersion, 6=Timestamp, 7=Vote, 9=Memo, 10=Data
+        /// (NOTE: Memo/Data were previously emitted at 10/11 — an off-by-one that produced an
+        ///  invalid metadata hash whenever a signature memo/data was set. Fixed to 9/10.)
         /// </summary>
         internal static byte[] MarshalSignatureMetadata(
             int signatureType,
@@ -371,10 +374,10 @@ namespace Acme.Net.Sdk.Codec
                 m.WriteUInt(7, vote);                 // tag 07: vote (uvarint)
 
             if (!string.IsNullOrEmpty(memo))
-                m.WriteString(10, memo);              // tag 10: memo (string)
+                m.WriteString(9, memo);               // tag 09: memo (string)
 
             if (data != null && data.Length > 0)
-                m.WriteBytes(11, data);               // tag 11: data (bytes)
+                m.WriteBytes(10, data);               // tag 10: data (bytes)
 
             return m.GetBytes();
         }

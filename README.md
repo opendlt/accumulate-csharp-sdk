@@ -108,10 +108,39 @@ if (result.Success)
 | `SignAsync` | Sign a transaction and return the envelope without submitting |
 | `SignAndSubmitAsync` | Sign and submit, return the raw response |
 | `SignSubmitAndWaitAsync` | Sign, submit, and poll until delivered or timeout |
+| `SignRemoteAsync` | Sign an EXISTING/pending transaction by hash (sign-pending); returns a `remote`-body envelope |
+| `SignRemoteAndSubmitAsync` | Sign a pending transaction by hash and submit the signature |
+| `SignRemoteSubmitAndWaitAsync` | Sign a pending transaction by hash, submit, and poll until delivered |
 | `AddKeyAsync` | Add a key to the signer's key page |
 | `SetThresholdAsync` | Set the multi-sig threshold on the signer's key page |
 | `GetSignerVersionAsync` | Query and cache the signer version |
 | `InvalidateCache` | Clear cached version and credit balance |
+
+### Multi-signature (M-of-N) — synchronous and asynchronous
+
+`MultiSig` co-signs one transaction across an M-of-N key page. Two flows:
+
+- **Synchronous co-sign** — all signers' keys available in one process (custodial):
+  `MultiSig.SubmitAsync(client, principal, body, initiator, coSigners, …)`.
+- **Asynchronous / independent** — each authority holds its own key and signs at a different
+  time/process. The initiator makes the transaction *pending* and shares only its hash; each
+  authority signs by hash:
+
+```csharp
+// Initiator: build + submit, leaving the tx pending until the threshold is met.
+var initiated = await MultiSig.InitiateAsync(principal, body, initiator);
+await client.V3.SubmitAsync(initiated.Envelope);
+// Share initiated.TransactionHash + initiated.Principal out-of-band.
+
+// Each independent authority later (no original body needed — only the hash):
+var result = await signerB.SignRemoteSubmitAndWaitAsync(
+    initiated.TransactionHash, initiated.Principal,
+    vote: VoteType.Accept, signatureMemo: "compliance approved");
+```
+
+Query progress with `client.V3.QueryPendingAsync(principal)` and `QueryTransactionAsync(txid)`.
+See `examples/v3/Example15_SignPendingMultisig` for the full pending→delivered round-trip on Kermit,
+and `Example14_MemoMetadataMultisig` for the synchronous co-sign.
 
 ## Transaction Builders
 
@@ -288,6 +317,8 @@ Complete working examples are provided in `examples/v3/`. All examples run real 
 | `Example11_MultiSignatureTypes` | Signature type enumeration and wire name lookups |
 | `Example12_QuickstartDemo` | Wallet creation, faucet, canonical JSON, network endpoints |
 | `Example13_AdiToAdiTransferWithHeaderOptions` | ADI-to-ADI transfer with memo in transaction header |
+| `Example14_MemoMetadataMultisig` | Header metadata, signature memo/data, and synchronous M-of-N co-signing |
+| `Example15_SignPendingMultisig` | Independent/asynchronous M-of-N: initiate a pending tx, then sign-by-hash to completion |
 
 Run any example:
 

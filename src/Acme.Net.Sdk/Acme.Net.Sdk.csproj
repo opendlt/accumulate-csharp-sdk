@@ -10,7 +10,13 @@
     <Description>Accumulate C# SDK (V2/V3 unified) with SmartSigner, TxBody builders, and Ed25519 signing</Description>
     <RepositoryUrl>https://gitlab.com/accumulatenetwork/sdk/acme.net</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>accumulate;blockchain;sdk;json-rpc;crypto;dotnet</PackageTags>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
