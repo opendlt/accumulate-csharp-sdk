@@ -8,7 +8,9 @@
     <PackageId>Acme.Net.Sdk</PackageId>
     <Authors>OpenDLT</Authors>
     <Description>Accumulate C# SDK (V2/V3 unified) with SmartSigner, TxBody builders, and Ed25519 signing</Description>
-    <RepositoryUrl>https://gitlab.com/accumulatenetwork/sdk/acme.net</RepositoryUrl>
+    <RepositoryUrl>https://github.com/opendlt/accumulate-csharp-sdk</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/opendlt/accumulate-csharp-sdk</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>accumulate;blockchain;sdk;json-rpc;crypto;dotnet</PackageTags>

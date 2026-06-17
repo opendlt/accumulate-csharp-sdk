@@ -23,8 +23,8 @@ Production-ready .NET SDK for the Accumulate blockchain protocol. Supports V2 an
 Clone the repository and build:
 
 ```bash
-git clone --recursive https://gitlab.com/accumulatenetwork/sdk/acme.net.git
-cd acme.net
+git clone --recursive https://github.com/opendlt/accumulate-csharp-sdk.git
+cd accumulate-csharp-sdk
 dotnet build src/Acme.Net.Sdk/Acme.Net.Sdk.csproj
 ```
 
