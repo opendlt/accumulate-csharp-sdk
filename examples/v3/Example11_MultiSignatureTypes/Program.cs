@@ -15,7 +15,7 @@ using Acme.Net.Sdk.Signing;
 /// </summary>
 class Program
 {
-    const string KermitBase = "https://kermit.accumulatenetwork.io";
+    static readonly string KermitBase = System.Environment.GetEnvironmentVariable("ACCUMULATE_BASE_URL") ?? "https://kermit.accumulatenetwork.io";
 
     static async Task Main()
     {

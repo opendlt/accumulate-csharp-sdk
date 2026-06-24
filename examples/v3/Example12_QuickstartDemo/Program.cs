@@ -30,8 +30,11 @@ class Program
         Accumulate acc;
         if (useKermit)
         {
-            Console.WriteLine("Connecting to Kermit testnet...");
-            acc = new Accumulate("https://kermit.accumulatenetwork.io");
+            // Honor ACCUMULATE_BASE_URL when set (e.g. mock/devnet harness); default to Kermit.
+            var baseUrl = System.Environment.GetEnvironmentVariable("ACCUMULATE_BASE_URL")
+                ?? "https://kermit.accumulatenetwork.io";
+            Console.WriteLine($"Connecting to {baseUrl}...");
+            acc = new Accumulate(baseUrl);
         }
         else
         {

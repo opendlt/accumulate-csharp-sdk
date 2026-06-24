@@ -11,7 +11,7 @@ using Acme.Net.Sdk.Signing;
 class Program
 {
     // For Kermit testnet:
-    const string KermitBase = "https://kermit.accumulatenetwork.io";
+    static readonly string KermitBase = System.Environment.GetEnvironmentVariable("ACCUMULATE_BASE_URL") ?? "https://kermit.accumulatenetwork.io";
 
     // For local DevNet testing, uncomment:
     // const string KermitBase = "http://127.0.0.1:26660";
