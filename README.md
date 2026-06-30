@@ -9,6 +9,7 @@ Production-ready .NET SDK for the Accumulate blockchain protocol. Supports V2 an
 - **Dual API Support**: Both V2 and V3 JSON-RPC endpoints through a unified `Accumulate` client
 - **Transaction Builders**: Static `TxBody` factory methods for all transaction types
 - **Key Management**: `KeyManager` for querying key page state and managing multi-sig configurations
+- **Hierarchy Provisioning**: `HierarchyProvisioner.EnsurePathAsync` builds arbitrary-depth sub-ADI paths in one idempotent call, with per-level custody
 - **Helper Utilities**: `AccumulateHelper` for balance polling, oracle queries, and credit math
 - **Canonical JSON**: Deterministic JSON serialization for protocol compatibility
 - **Network Ready**: Mainnet, Testnet (Kermit), and local DevNet support
@@ -141,6 +142,48 @@ var result = await signerB.SignRemoteSubmitAndWaitAsync(
 Query progress with `client.V3.QueryPendingAsync(principal)` and `QueryTransactionAsync(txid)`.
 See `examples/v3/Example15_SignPendingMultisig` for the full pending→delivered round-trip on Kermit,
 and `Example14_MemoMetadataMultisig` for the synchronous co-sign.
+
+## Identity Hierarchy Provisioning
+
+Accumulate accounts are not a flat namespace: a create transaction's principal must equal the **immediate parent** of the URL being created, and that parent must already exist as an ADI. So a nested path like `acc://my-adi.acme/tenant/inventory` is a multi-step provision — create `…/tenant` as a sub-ADI (signed by the ADI), then create `…/tenant/inventory` (signed by `…/tenant`).
+
+`HierarchyProvisioner.EnsurePathAsync` does the entire walk for you, to any depth. It creates each missing intermediate as a sub-ADI (switching the signing principal at every level) and the final segment as the requested leaf kind. It is **idempotent** — every node is queried first and skipped if it already exists, so partial runs resume cleanly.
+
+```csharp
+using Acme.Net.Sdk.Provisioning;
+
+var provisioner = new HierarchyProvisioner(client.V3);
+
+// rootSigner is a SmartSigner over your ADI's key page.
+// Default custody = InheritParent: that one key page signs and pays for the whole
+// chain (sub-ADIs inherit its key book), so no extra keys or credits are needed.
+var result = await provisioner.EnsurePathAsync(
+    "acc://my-adi.acme/tenant/inventory",
+    rootSigner,
+    LeafKind.DataAccount);
+
+Console.WriteLine($"{result.CreatedCount} created, leaf = {result.Leaf.Url}");
+```
+
+### Per-level custody
+
+By default every intermediate inherits its parent's authority. Give a specific level its **own key book** (independent signing authority) with a `CustodyPlan`; its freshly created key page is funded via a `CreditFunderAsync`:
+
+```csharp
+var tenantKey = AccKeyPairGenerator.GenerateSignatureKeyPair(SignatureType.ED25519);
+
+var plan = new CustodyPlan()
+    .WithLevel("acc://my-adi.acme/tenant", LevelCustody.Own(tenantKey, credits: 5000));
+
+await provisioner.EnsurePathAsync(
+    "acc://my-adi.acme/tenant/inventory",
+    rootSigner,
+    LeafKind.DataAccount,
+    custody: plan,
+    creditFunder: CreditFunders.FromTokenAccount(client.V3, funderSigner, funderTokenAccount));
+```
+
+`LeafKind` may be `DataAccount`, `TokenAccount`, `KeyBook`, or `SubAdi`. The underlying inherited-authority sub-ADI body is also available directly as `TxBody.CreateIdentityInherited(url)`. See `examples/v3/Example16_EnsureHierarchyPath` for a full Kermit run covering depth-3 inherit, idempotency, and mixed custody.
 
 ## Transaction Builders
 
@@ -319,6 +362,7 @@ Complete working examples are provided in `examples/v3/`. All examples run real 
 | `Example13_AdiToAdiTransferWithHeaderOptions` | ADI-to-ADI transfer with memo in transaction header |
 | `Example14_MemoMetadataMultisig` | Header metadata, signature memo/data, and synchronous M-of-N co-signing |
 | `Example15_SignPendingMultisig` | Independent/asynchronous M-of-N: initiate a pending tx, then sign-by-hash to completion |
+| `Example16_EnsureHierarchyPath` | Arbitrary-depth identity provisioning with `EnsurePathAsync`: depth-3 inherit path, idempotent re-run, and mixed per-level custody |
 
 Run any example:
 
@@ -341,6 +385,10 @@ src/Acme.Net.Sdk/
 ├── Helpers/
 │   ├── AccumulateHelper.cs    # Balance polling, oracle queries, credit math
 │   └── QuickStart.cs          # Rapid development helper
+├── Provisioning/
+│   ├── HierarchyProvisioner.cs # EnsurePathAsync — arbitrary-depth identity provisioning
+│   ├── HierarchyTypes.cs       # CustodyPlan, LevelCustody, LeafKind, ProvisionResult
+│   └── CreditFunders.cs        # Credit funding for OwnKeyBook key pages
 ├── Protocol/
 │   ├── Principal.cs           # Lite identity/token URL derivation
 │   ├── SignatureType.cs       # Signature type enum (17 types)
@@ -376,7 +424,7 @@ src/Acme.Net.Sdk/
     ├── Wallet.cs              # Wallet management with encryption
     └── FileSystemWalletStorage.cs
 
-examples/v3/                   # 12 complete working examples
+examples/v3/                   # complete working examples (Example01–Example16)
 test/
 ├── Acme.Net.Sdk.Tests/        # Unit and integration tests
 └── vectors/                   # Protocol test vectors (git submodule)
