@@ -74,6 +74,33 @@ namespace Acme.Net.Sdk.Transactions
             return body;
         }
 
+        /// <summary>
+        /// Builds a <c>createIdentity</c> body for a SUB-ADI that does NOT create its own key book.
+        /// With no key book and no explicit authorities, the sub-ADI is created with an empty
+        /// authority set and INHERITS authority from its parent identity — the Accumulate executor
+        /// resolves the controlling authority by walking up the identity chain
+        /// (<c>internal/core/block/shared/shared.go:GetAccountAuthoritySet</c> →
+        /// <c>execute/v2/block/utils.go:getAccountAuthoritySet</c>, which recurses to the parent
+        /// when an account's authority set is empty). The parent's key page therefore signs and
+        /// pays for this sub-ADI and anything created under it — no new keys or credits required.
+        /// <para>
+        /// Only valid for sub-ADIs: a root identity must be created with a key book or explicit
+        /// authorities (Go core <c>create_identity.go</c> rejects an empty authority set on a root).
+        /// The transaction principal must be the immediate parent identity.
+        /// </para>
+        /// </summary>
+        public static Dictionary<string, object?> CreateIdentityInherited(string url, List<string>? authorities = null)
+        {
+            var body = new Dictionary<string, object?>
+            {
+                ["type"] = "createIdentity",
+                ["url"] = url,
+            };
+            if (authorities != null && authorities.Count > 0)
+                body["authorities"] = authorities.Select(a => new Dictionary<string, object?> { ["url"] = a }).ToList();
+            return body;
+        }
+
         // ---- Tokens ----
 
         public static Dictionary<string, object?> SendTokens(List<TxRecipient> to)

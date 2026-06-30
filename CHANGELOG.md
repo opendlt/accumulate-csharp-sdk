@@ -5,6 +5,16 @@ All notable changes to the Accumulate C# SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-06-30
+
+### Added
+- `HierarchyProvisioner.EnsurePathAsync` — idempotent, arbitrary-depth identity provisioning. Walks an `acc://adi/a/b/.../leaf` path, creating each missing intermediate as a sub-ADI (signing with the immediate parent as principal at every level) and the final segment as the requested leaf kind. Re-runs create nothing.
+- `CustodyMode` / `LevelCustody` / `CustodyPlan` — per-level governance. `InheritParent` (default) signs and pays the whole chain from one key page; `OwnKeyBook` gives a level its own key book + funded key page for independent custody.
+- `LeafKind` (DataAccount, TokenAccount, KeyBook, SubAdi) and `LeafOptions`.
+- `CreditFunders.FromTokenAccount` — funds `OwnKeyBook` key pages from a lite/ADI token account.
+- `TxBody.CreateIdentityInherited` — `createIdentity` body with no key book, so a sub-ADI inherits its parent's authority.
+- `examples/v3/Example16_EnsureHierarchyPath` — Kermit on-chain acceptance test (depth-3 inherit, idempotency, mixed custody).
+
 ## [1.0.0] - 2026-02-27
 
 ### Added
