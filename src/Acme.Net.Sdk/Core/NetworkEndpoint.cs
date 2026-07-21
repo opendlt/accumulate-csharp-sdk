@@ -18,6 +18,7 @@ namespace Acme.Net.Sdk.Core
     {
         public const string MainnetBaseUrl = "https://mainnet.accumulatenetwork.io";
         public const string TestnetBaseUrl = "https://testnet.accumulatenetwork.io";
+        public const string KermitBaseUrl = "https://kermit.accumulatenetwork.io";
         public const string DevnetBaseUrl = "http://localhost:26660";
         public const int DefaultDevnetPort = 26660;
 

@@ -66,6 +66,15 @@ namespace Acme.Net.Sdk
         }
 
         /// <summary>
+        /// Creates a client connected to the Kermit testnet (the network used by
+        /// the SDK examples and quickstart). Parity with <see cref="Helpers.QuickStart.Kermit"/>.
+        /// </summary>
+        public static Accumulate Kermit(TimeSpan? timeout = null)
+        {
+            return new Accumulate(NetworkEndpoints.KermitBaseUrl, timeout);
+        }
+
+        /// <summary>
         /// Creates a client connected to a local devnet instance.
         /// </summary>
         public static Accumulate Devnet(string host = "localhost", int port = 26660, TimeSpan? timeout = null)

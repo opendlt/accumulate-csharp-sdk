@@ -9,7 +9,7 @@ This repository contains example applications demonstrating how to use the Acme.
 
 ## Prerequisites
 
-- .NET 6.0 SDK or higher
+- .NET 9.0 SDK or higher
 - A Testnet or Mainnet Accumulate node to connect to
 
 ## Building and Running Examples
