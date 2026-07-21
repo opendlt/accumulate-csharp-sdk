@@ -21,6 +21,9 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\llms.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\llms-full.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\AGENTS.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
