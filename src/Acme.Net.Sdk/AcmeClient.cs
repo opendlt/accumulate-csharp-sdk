@@ -8,6 +8,12 @@ namespace Acme.Net.Sdk
     /// <summary>
     /// Factory class for creating Acme API clients.
     /// </summary>
+    /// <remarks>
+    /// Legacy builder-style client. The canonical path is
+    /// <see cref="Accumulate"/> + <see cref="Transactions.TxBody"/> +
+    /// <see cref="Signing.SmartSigner"/> (see the README and examples/v3).
+    /// </remarks>
+    [Obsolete("Use the canonical Accumulate + TxBody + SmartSigner API instead (see README and examples/v3).")]
     public class AcmeClient
     {
         private readonly AsyncRPCClient _rpcClient;
