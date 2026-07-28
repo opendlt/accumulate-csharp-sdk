@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.3.1] - 2026-07-28
+
+### Fixed
+- All XML documentation warnings (CS1570/CS1572/CS1573/CS1574/CS1584/CS1658/CS0419). The package ships `lib/net9.0/Acme.Net.Sdk.xml` via `GenerateDocumentationFile`, and malformed doc comments degraded the IntelliSense surface that file exists to provide — unescaped generics, `cref` parameter lists carrying nullable annotations, a documented parameter that does not exist, and undocumented parameters.
+
 ## [2.3.0] - 2026-07-28
 
 ### Added
