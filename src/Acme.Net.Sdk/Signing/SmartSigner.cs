@@ -434,6 +434,9 @@ namespace Acme.Net.Sdk.Signing
         /// </summary>
         /// <param name="transactionHash">The 32-byte hash of the transaction being signed.</param>
         /// <param name="principal">The principal (account) of the original transaction — where it is pending.</param>
+        /// <param name="vote">Optional vote cast with this signature (accept/reject/abstain). Defaults to accept.</param>
+        /// <param name="signatureMemo">Optional memo bound into this signature.</param>
+        /// <param name="signatureData">Optional opaque data bound into this signature.</param>
         public async Task<Dictionary<string, object?>> SignRemoteAsync(
             byte[] transactionHash,
             string principal,
@@ -575,9 +578,9 @@ namespace Acme.Net.Sdk.Signing
         /// M-of-N threshold.
         /// <para>
         /// This is the robust independent/asynchronous co-sign path: share the initiator's
-        /// <c>Header</c> + <c>Body</c> (e.g. from <see cref="MultiSig.InitiatedTransaction"/>)
+        /// <c>Header</c> + <c>Body</c> (e.g. from <c>MultiSig.InitiatedTransaction</c>)
         /// out-of-band; each authority co-signs from its own process. Prefer this over the hash-only
-        /// <see cref="SignRemoteAsync(byte[], string, Acme.Net.Sdk.Protocol.VoteType?, string?, byte[]?)"/>
+        /// <c>SignRemoteAsync</c>
         /// when the original header+body can be shared.
         /// </para>
         /// </summary>

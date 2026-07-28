@@ -14,7 +14,12 @@ namespace Acme.Net.Sdk.Signing
     /// </summary>
     public class Signer
     {
+        // Retained because the public InitWith*Hash() methods set it and are part
+        // of the fluent API; the value is not read today. Marked to silence CS0414
+        // rather than deleting a field the API surface still writes to.
+#pragma warning disable CS0414
         private InitHashMode _initMode = InitHashMode.INIT_WITH_SIMPLE_HASH;
+#pragma warning restore CS0414
         private SignatureType? _signatureType;
         private Url? _url;
         private int? _version;

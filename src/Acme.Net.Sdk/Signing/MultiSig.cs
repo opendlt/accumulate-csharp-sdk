@@ -20,7 +20,7 @@ namespace Acme.Net.Sdk.Signing
     /// to make the transaction PENDING on the network, plus everything an independent co-signer
     /// needs to add their signature later (the transaction hash and the principal it is pending on).
     /// Share <see cref="TransactionHashHex"/> + <see cref="Principal"/> out-of-band with each
-    /// authority; they sign with <see cref="SmartSigner.SignRemoteSubmitAndWaitAsync(byte[], string, Acme.Net.Sdk.Protocol.VoteType?, string?, byte[]?, int, System.TimeSpan?)"/>.
+    /// authority; they sign with <see cref="SmartSigner.SignRemoteSubmitAndWaitAsync"/>.
     /// </summary>
     public sealed record InitiatedTransaction(
         Dictionary<string, object?> Envelope,

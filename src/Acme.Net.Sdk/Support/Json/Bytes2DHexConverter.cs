@@ -7,7 +7,7 @@ using Acme.Net.Sdk.Commons.Codec; // For DecoderException
 namespace Acme.Net.Sdk.Support.Json
 {
     /// <summary>
-    /// Converts a List of byte arrays (IList<byte[]?>) to and from a JSON array of lowercase hexadecimal strings (or nulls).
+    /// Converts a list of byte arrays (IList{byte[]}) to and from a JSON array of lowercase hexadecimal strings (or nulls).
     /// </summary>
     public class Bytes2DHexConverter : JsonConverter<IList<byte[]?>?>
     {

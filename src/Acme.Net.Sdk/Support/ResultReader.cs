@@ -35,7 +35,6 @@ namespace Acme.Net.Sdk.Support
         /// </summary>
         /// <typeparam name="T">The target type.</typeparam>
         /// <param name="json">The JSON string.</param>
-        /// <param name="valueType">The target type.</param> // Note: Redundant if T is used
         /// <returns>The deserialized object.</returns>
         /// <exception cref="Newtonsoft.Json.JsonException">Thrown if deserialization fails.</exception>
         public static T ReadValue<T>(string json) // Simplified signature using generic T
