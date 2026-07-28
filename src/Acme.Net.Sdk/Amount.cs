@@ -36,6 +36,34 @@ public readonly struct Amount
     public static Amount FromBaseUnits(string units) => new(BigInteger.Parse(units));
 
     /// <summary>
+    /// Create from whole units of a <b>custom token</b> with the given precision.
+    /// </summary>
+    /// <remarks>
+    /// Custom tokens declare their own precision at creation; the wire format is
+    /// always base units. <c>Amount.Token(1000, 8)</c> is 1000 whole tokens =
+    /// <c>100000000000</c> base units.
+    /// <para>
+    /// Without this the only options are hand-computing a power of ten or passing
+    /// a raw base-unit string, and both are routinely got wrong: issuing
+    /// <c>1000</c> against a precision-8 token mints <c>0.00001</c> tokens, not
+    /// 1000 — and the transaction succeeds either way, so the mistake is silent.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// Amount.Token(1000, 8).ToWire(); // "100000000000"
+    /// Amount.Token(100, 2).ToWire();  // "10000"
+    /// Amount.Token(1000, 0).ToWire(); // "1000"
+    /// </code>
+    /// </example>
+    public static Amount Token(decimal wholeTokens, int precision) =>
+        new((BigInteger)(wholeTokens * (decimal)BigInteger.Pow(10, precision)));
+
+    /// <summary>The amount in whole units of a token with the given precision.</summary>
+    public decimal ToToken(int precision) =>
+        (decimal)BaseUnits / (decimal)BigInteger.Pow(10, precision);
+
+    /// <summary>
     /// ACME base units needed to buy <paramref name="creditCount"/> credits at
     /// <paramref name="oraclePrice"/> (the integer oracle value from the network).
     /// </summary>
