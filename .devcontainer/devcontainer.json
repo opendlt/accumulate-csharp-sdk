@@ -1,0 +1,28 @@
+{
+  "name": "accumulate-csharp-sdk",
+  // src/Acme.Net.Sdk targets net9.0.
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "postCreateCommand": "dotnet restore Acme.Net.Sdk.sln",
+
+  "containerEnv": {
+    "ACCUMULATE_NETWORK": "kermit",
+    // Machine-readable output: no telemetry banner, no ANSI colour, no logo —
+    // all three corrupt an agent's parse of dotnet's stdout.
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_NOLOGO": "1",
+    "TERM": "dumb"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-dotnettools.csdevkit", "ms-dotnettools.csharp"]
+    }
+  },
+
+  "remoteUser": "vscode"
+}
