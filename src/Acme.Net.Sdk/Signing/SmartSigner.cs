@@ -309,10 +309,47 @@ namespace Acme.Net.Sdk.Signing
                         submitSuccess = false;
                 }
 
-                // Check if the message indicates a fatal error
+                // Generic submit-time rejection: the network accepted the envelope
+                // but REJECTED the transaction, reporting it on `status`. Checking
+                // only a hardcoded message allowlist missed everything outside it —
+                // notably `unauthorized` — and such a rejection then fell through to
+                // `Success = string.IsNullOrEmpty(submitMessage)`, i.e. reported
+                // SUCCESS for a transaction the network had refused.
+                if (submitResult.TryGetProperty("status", out var statusForError) &&
+                    statusForError.ValueKind == JsonValueKind.Object)
+                {
+                    var failed = statusForError.TryGetProperty("failed", out var failedProp) &&
+                                 failedProp.ValueKind == JsonValueKind.True;
+                    var hasError = statusForError.TryGetProperty("error", out var errProp) &&
+                                   errProp.ValueKind != JsonValueKind.Null &&
+                                   errProp.ValueKind != JsonValueKind.Undefined;
+
+                    if (failed || hasError)
+                    {
+                        string errText = submitMessage ?? "transaction rejected at submit";
+                        if (hasError)
+                        {
+                            errText = errProp.TryGetProperty("message", out var em)
+                                ? em.GetString() ?? errText
+                                : errProp.ToString();
+                        }
+
+                        return new TransactionResult
+                        {
+                            Success = false,
+                            TxId = txId,
+                            Error = $"Transaction rejected at submit: {errText}",
+                            Response = submitResult,
+                        };
+                    }
+                }
+
+                // Message-based fatal errors (kept for responses that report the
+                // reason only in `message`).
                 if (!string.IsNullOrEmpty(submitMessage) &&
                     (submitMessage.Contains("insufficientCredits", StringComparison.OrdinalIgnoreCase) ||
                      submitMessage.Contains("insufficientBalance", StringComparison.OrdinalIgnoreCase) ||
+                     submitMessage.Contains("unauthorized", StringComparison.OrdinalIgnoreCase) ||
                      submitMessage.Contains("invalid signature", StringComparison.OrdinalIgnoreCase)))
                 {
                     return new TransactionResult
@@ -391,9 +428,13 @@ namespace Acme.Net.Sdk.Signing
             }
 
             // No success indicator and no txId
+            // Never report success for a submission the network did not accept.
+            // `submitSuccess` is false when codeNum != 200 or no success flag was
+            // present; previously this line returned Success = true whenever there
+            // simply was no message to report.
             return new TransactionResult
             {
-                Success = string.IsNullOrEmpty(submitMessage),
+                Success = submitSuccess && string.IsNullOrEmpty(submitMessage),
                 TxId = txId,
                 Error = submitMessage,
                 Response = submitResult,

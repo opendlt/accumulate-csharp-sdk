@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.2] - 2026-07-29
+
+### Fixed
+- **A rejected transaction could be reported as successful.** Submit-time rejections were only detected via `status.codeNum` and a hardcoded message allowlist (`insufficientCredits`, `insufficientBalance`, `invalid signature`) — anything outside it, notably `unauthorized`, fell through to `Success = string.IsNullOrEmpty(submitMessage)`, which returns **true** when the reason is carried on `status.error` rather than a top-level `message`. Submit responses are now checked generically for `status.failed` / `status.error`, and the fall-through no longer reports success for a submission the network did not accept.
+
+### Added
+- `llms.txt` documents that custom-token precision is configured on the token issuer and is not 1e8.
+
 ## [2.3.1] - 2026-07-28
 
 ### Fixed
