@@ -48,7 +48,15 @@ internal static class Program
 {
     private const string EnvelopeVersion = "1";
     private const string SdkName = "csharp";
-    private const string SdkVersion = "2.3.3";
+    /// Read from the assembly rather than hardcoded: a literal here silently ships
+    /// a stale version the moment the csproj is bumped.
+    private static readonly string SdkVersion =
+        typeof(Program).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion?.Split('+')[0]
+        ?? typeof(Program).Assembly.GetName().Version?.ToString(3)
+        ?? "0.0.0";
 
     private const int ExitOk = 0;
     private const int ExitFailed = 1;

@@ -7,7 +7,7 @@
     <!-- Ship XML doc comments so IntelliSense and AI agents see the ~5.5k /// docs (P1-CS-01) -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <Version>2.3.3</Version>
+    <Version>2.3.4</Version>
     <PackageId>Acme.Net.Sdk</PackageId>
     <Authors>OpenDLT</Authors>
     <Description>Accumulate C# SDK (V2/V3 unified) with SmartSigner, TxBody builders, and Ed25519 signing</Description>
