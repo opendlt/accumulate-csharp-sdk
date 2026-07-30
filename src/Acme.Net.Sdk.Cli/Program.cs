@@ -137,15 +137,25 @@ internal static class Program
             new[] { new VerbFlag("--amount", "number", true) }),
         new("tx build", "Build an unsigned transaction body", false, false,
             new[] { new VerbArg("op", "string", true) },
-            new[] { new VerbFlag("--param", "key=value", false, null, true) }),
-        new("tx submit", "Submit a signed envelope", true, true,
+            new[]
+            {
+                new VerbFlag("--param", "key=value", false, null, true),
+                new VerbFlag("--out", "path", false),
+            }),
+        new("tx sign", "Sign a transaction body into a submittable envelope", true, true,
             Array.Empty<VerbArg>(),
             new[]
             {
-                new VerbFlag("--envelope", "path", true),
+                new VerbFlag("--body", "path", true),
+                new VerbFlag("--principal", "string", true),
+                new VerbFlag("--signer", "string", true),
                 new VerbFlag("--key-file", "path", false),
                 new VerbFlag("--key-env", "string", false),
+                new VerbFlag("--out", "path", false),
             }),
+        new("tx submit", "Submit an ALREADY-SIGNED envelope (does not sign)", true, false,
+            Array.Empty<VerbArg>(),
+            new[] { new VerbFlag("--envelope", "path", true) }),
         new("tx wait", "Poll a transaction until it reaches a final state", true, false,
             new[] { new VerbArg("txid", "string", true) },
             new[] { new VerbFlag("--timeout", "integer", false, "60") }),
@@ -174,6 +184,19 @@ internal static class Program
 
     private static bool _asJson;
     private static string? _network;
+
+    /// The real stdout, captured before the SDK can redirect or write to it.
+    ///
+    /// stdout is protocol here: the envelope must be the only thing on it. The
+    /// SDK prints diagnostics (e.g. "[SignatureKeyPair] Imported Ed25519 seed")
+    /// straight to Console.Out mid-call, which corrupted the envelope. Console.Out
+    /// is swapped for a buffer in Main and everything the SDK writes is forwarded
+    /// to stderr, so no future SDK chatter can break the contract either.
+    /// Assigned explicitly at the top of Main, BEFORE Console.Out is swapped.
+    /// A `static readonly ... = Console.Out` initializer is evaluated lazily on
+    /// first access, which happens after the swap — so it captured the buffer and
+    /// the envelope vanished.
+    private static TextWriter RealOut = Console.Out;
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static bool _emitted;
 
@@ -222,11 +245,11 @@ internal static class Program
                 ["data"] = data ?? new JsonObject(),
                 ["meta"] = Meta(),
             };
-            Console.Out.WriteLine(env.ToJsonString());
+            RealOut.WriteLine(env.ToJsonString());
         }
         else
         {
-            Console.Out.WriteLine((data ?? new JsonObject()).ToJsonString(
+            RealOut.WriteLine((data ?? new JsonObject()).ToJsonString(
                 new JsonSerializerOptions { WriteIndented = true }));
         }
         return ExitOk;
@@ -270,7 +293,7 @@ internal static class Program
                 ["error"] = error,
                 ["meta"] = Meta(),
             };
-            Console.Out.WriteLine(env.ToJsonString());
+            RealOut.WriteLine(env.ToJsonString());
         }
         else
         {
@@ -279,6 +302,101 @@ internal static class Program
             Console.Error.WriteLine($"  fix: {e.Remediation}");
         }
         return ec;
+    }
+
+
+    /// Case- and underscore-insensitive parameter lookup, so snake_case and
+    /// camelCase both work. Op and parameter names differ per SDK, and making an
+    /// agent learn each one defeats the point of a single CLI spec.
+    private static string? Pick(Dictionary<string, object> a, string name)
+    {
+        static string N(string x) => x.Replace("_", string.Empty).ToLowerInvariant();
+        var target = N(name);
+        foreach (var (k, v) in a)
+        {
+            if (N(k) == target && v is string sv) return sv;
+        }
+        return null;
+    }
+
+    private static string Req(Dictionary<string, object> a, string name, string op) =>
+        Pick(a, name) ?? throw new UsageException($"'{op}' requires --param {name}");
+
+    private static int ReqInt(Dictionary<string, object> a, string name, string op)
+    {
+        var raw = Req(a, name, op);
+        if (!int.TryParse(raw, out var v))
+            throw new UsageException($"--param {name} must be an integer");
+        return v;
+    }
+
+    private static readonly string[] BuildOps =
+    {
+        "create_identity", "create_token_account", "create_data_account", "create_token",
+        "send_tokens_single", "issue_tokens", "burn_tokens", "add_credits",
+        "transfer_credits", "burn_credits", "write_data", "create_key_book",
+    };
+
+    /// Builder dispatch is explicit rather than reflective. Every branch delegates
+    /// to TxBody, which is what keeps the produced bytes identical to the SDK path
+    /// — these are consensus-visible.
+    private static Dictionary<string, object?> BuildBody(string op, Dictionary<string, object> a)
+    {
+        var n = op.Replace("_", string.Empty).ToLowerInvariant();
+        return n switch
+        {
+            "createidentity" => Acme.Net.Sdk.Transactions.TxBody.CreateIdentity(
+                Req(a, "url", op), Req(a, "key_book_url", op), Req(a, "public_key_hash", op)),
+            "createtokenaccount" => Acme.Net.Sdk.Transactions.TxBody.CreateTokenAccount(
+                Req(a, "url", op), Req(a, "token_url", op)),
+            "createdataaccount" => Acme.Net.Sdk.Transactions.TxBody.CreateDataAccount(Req(a, "url", op)),
+            "createtoken" => Acme.Net.Sdk.Transactions.TxBody.CreateToken(
+                Req(a, "url", op), Req(a, "symbol", op), ReqInt(a, "precision", op)),
+            "sendtokenssingle" => Acme.Net.Sdk.Transactions.TxBody.SendTokensSingle(
+                Req(a, "to_url", op), Req(a, "amount", op)),
+            "issuetokens" => Acme.Net.Sdk.Transactions.TxBody.IssueTokens(
+                Req(a, "recipient", op), Req(a, "amount", op)),
+            "burntokens" => Acme.Net.Sdk.Transactions.TxBody.BurnTokens(Req(a, "amount", op)),
+            "addcredits" => Acme.Net.Sdk.Transactions.TxBody.AddCredits(
+                Req(a, "recipient", op), Req(a, "amount", op), ReqInt(a, "oracle", op)),
+            "transfercredits" => Acme.Net.Sdk.Transactions.TxBody.TransferCredits(
+                Req(a, "to_url", op), ReqInt(a, "amount", op)),
+            "burncredits" => Acme.Net.Sdk.Transactions.TxBody.BurnCredits(ReqInt(a, "amount", op)),
+            "writedata" => Acme.Net.Sdk.Transactions.TxBody.WriteData(
+                new List<string> { Req(a, "data", op) }),
+            "createkeybook" => Acme.Net.Sdk.Transactions.TxBody.CreateKeyBook(
+                Req(a, "url", op), Req(a, "public_key_hash", op)),
+            _ => throw new UsageException(
+                $"unknown transaction op '{op}' - available: {string.Join(", ", BuildOps)}"),
+        };
+    }
+
+    /// Resolve the signing key from an EXPLICIT source only.
+    ///
+    /// Never falls back to an ambient default: a CLI that quietly finds a key is
+    /// a CLI that signs something the caller did not intend. Keys are never
+    /// positional either, so they stay out of shell history.
+    private static string LoadPrivateKey(Dictionary<string, object> a)
+    {
+        var keyFile = Str(a, "key_file");
+        var keyEnv = Str(a, "key_env");
+        if (keyFile is not null && keyEnv is not null)
+            throw new UsageException("pass only one of --key-file or --key-env");
+        if (keyFile is not null)
+        {
+            try { return File.ReadAllText(keyFile).Trim(); }
+            catch (Exception e) { throw new UsageException($"could not read --key-file: {e.Message}"); }
+        }
+        if (keyEnv is not null)
+        {
+            var v = Environment.GetEnvironmentVariable(keyEnv);
+            if (string.IsNullOrWhiteSpace(v))
+                throw new UsageException($"--key-env '{keyEnv}' is not set or empty");
+            return v.Trim();
+        }
+        throw new UsageException(
+            "signing requires an explicit key source: --key-file <path> or --key-env <VAR>. " +
+            "No ambient default key is ever used.");
     }
 
     private static string BaseUrl(string network)
@@ -509,22 +627,10 @@ internal static class Program
                 // pubkey...") straight to stdout, which would corrupt the envelope.
                 // stdout is protocol here, so capture anything the SDK prints during
                 // the call and forward it to stderr where diagnostics belong.
-                byte[] pub;
-                var sdkChatter = new StringWriter();
-                var realOut = Console.Out;
-                try
-                {
-                    Console.SetOut(sdkChatter);
-                    var principal = Acme.Net.Sdk.Protocol.LiteTokenAccountPrincipal.Generate(
-                        Acme.Net.Sdk.Protocol.Generated.SignatureType.ED25519);
-                    pub = principal.SignatureKeyPair.GetPublicKey();
-                }
-                finally
-                {
-                    Console.SetOut(realOut);
-                    var captured = sdkChatter.ToString();
-                    if (captured.Length > 0) Console.Error.Write(captured);
-                }
+                // Console.Out is already quarantined for the whole run in Main.
+                var principal = Acme.Net.Sdk.Protocol.LiteTokenAccountPrincipal.Generate(
+                    Acme.Net.Sdk.Protocol.Generated.SignatureType.ED25519);
+                var pub = principal.SignatureKeyPair.GetPublicKey();
                 var lid = Acme.Net.Sdk.Protocol.UrlUtils.ComputeLiteIdentityUrl(pub).ToString();
                 return Ok(new JsonObject
                 {
@@ -538,6 +644,7 @@ internal static class Program
             case "tx build":
             {
                 var ps = new JsonObject();
+                var flat = new Dictionary<string, object>();
                 if (a.TryGetValue("param", out var raws) && raws is List<string> list)
                 {
                     foreach (var raw in list)
@@ -546,12 +653,19 @@ internal static class Program
                         if (idx < 0)
                             throw new UsageException($"--param must be key=value, got '{raw}'");
                         ps[raw[..idx]] = raw[(idx + 1)..];
+                        flat[raw[..idx]] = raw[(idx + 1)..];
                     }
                 }
+                var op = Str(a, "op") ?? string.Empty;
+                var built = BuildBody(op, flat);
+                var bodyNode = JsonSerializer.SerializeToNode(built);
+                var outPath = Str(a, "out");
+                if (outPath is not null) File.WriteAllText(outPath, bodyNode?.ToJsonString() ?? "{}");
                 return Ok(new JsonObject
                 {
-                    ["op"] = Str(a, "op"), ["params"] = ps, ["signed"] = false,
-                    ["note"] = "unsigned body; sign and submit with `tx submit --envelope`",
+                    ["op"] = op, ["params"] = ps, ["body"] = bodyNode, ["signed"] = false,
+                    ["out"] = outPath,
+                    ["note"] = "unsigned body; sign it with `tx sign --body <file>`, then `tx submit`",
                 });
             }
         }
@@ -677,19 +791,54 @@ internal static class Program
                 return Ok(o);
             }
 
+            case "tx sign":
+            {
+                // The ONLY verb that signs. Delegates to the SDK signer: signing
+                // bytes are consensus-visible and a second implementation is how
+                // they drift.
+                var privateHex = LoadPrivateKey(a);
+                var bodyPath = Str(a, "body")!;
+                if (!File.Exists(bodyPath)) throw new UsageException($"no such body file: {bodyPath}");
+                var bodyJson = await File.ReadAllTextAsync(bodyPath).ConfigureAwait(false);
+                var body = JsonSerializer.Deserialize<Dictionary<string, object?>>(bodyJson)
+                    ?? throw new UsageException("body is not a JSON object");
+
+                byte[] seed;
+                try { seed = Convert.FromHexString(privateHex); }
+                catch (FormatException) { throw new UsageException("private key is not valid hex"); }
+                if (!Acme.Net.Sdk.Signing.SignatureKeyPair.TryImportFromSecretKeyBytes(
+                        seed, Acme.Net.Sdk.Protocol.Generated.SignatureType.ED25519, out var kp))
+                {
+                    throw new UsageException("private key must be a 32- or 64-byte ed25519 hex seed");
+                }
+
+                using var v3 = new Acme.Net.Sdk.V3.AccumulateV3Client($"{baseUrl}/v3");
+                var signer = new Acme.Net.Sdk.Signing.SmartSigner(v3, kp, Str(a, "signer")!);
+                var envelope = await signer
+                    .SignAsync(Str(a, "principal")!, body)
+                    .ConfigureAwait(false);
+                var envNode = JsonSerializer.SerializeToNode(envelope);
+                var signOut = Str(a, "out");
+                if (signOut is not null) File.WriteAllText(signOut, envNode?.ToJsonString() ?? "{}");
+                return Ok(new JsonObject
+                {
+                    ["signed"] = true, ["principal"] = Str(a, "principal"),
+                    ["signer"] = Str(a, "signer"), ["envelope"] = envNode, ["out"] = signOut,
+                });
+            }
+
             case "tx submit":
             {
-                if (Str(a, "key_file") is null && Str(a, "key_env") is null)
-                {
-                    throw new UsageException(
-                        "tx submit signs, so it requires --key-file or --key-env; " +
-                        "no ambient default key is ever used");
-                }
+                // Deliberately does NOT sign, and no longer pretends to: it used
+                // to take --key-file/--key-env and never use them.
                 var path = Str(a, "envelope")!;
                 if (!File.Exists(path))
                     throw new UsageException($"no such envelope file: {path}");
                 var envelope = JsonNode.Parse(await File.ReadAllTextAsync(path).ConfigureAwait(false));
-                var r = await Rpc(baseUrl, "v3", "submit", envelope).ConfigureAwait(false);
+                // V3 submit takes {"envelope": <envelope>}; posting the bare
+                // envelope returns -33400 "envelope is missing".
+                var r = await Rpc(baseUrl, "v3", "submit",
+                    new JsonObject { ["envelope"] = envelope }).ConfigureAwait(false);
                 if (r?["error"] is { } err) return Fail(RpcErrorText(err));
                 return Ok(new JsonObject
                 {
@@ -703,6 +852,25 @@ internal static class Program
     }
 
     public static async Task<int> Main(string[] argv)
+    {
+        // Anything the SDK writes to Console.Out lands in this buffer instead of
+        // the protocol stream, and is forwarded to stderr on the way out.
+        RealOut = Console.Out;
+        var sdkChatter = new StringWriter();
+        Console.SetOut(sdkChatter);
+        try
+        {
+            return await RunAsync(argv).ConfigureAwait(false);
+        }
+        finally
+        {
+            Console.SetOut(RealOut);
+            var captured = sdkChatter.ToString();
+            if (captured.Length > 0) Console.Error.Write(captured);
+        }
+    }
+
+    private static async Task<int> RunAsync(string[] argv)
     {
         _asJson = argv.Contains("--json");
         var network = DefaultNetwork;
@@ -733,9 +901,9 @@ internal static class Program
         if (wantsHelp || verbTokens.Count == 0)
         {
             if (_asJson) return Ok(CommandTree());
-            Console.Out.WriteLine("accumulate — Accumulate SDK CLI\n");
-            foreach (var v in Verbs) Console.Out.WriteLine($"  {v.Name,-20} {v.Summary}");
-            Console.Out.WriteLine("\nRun with --json --help for the machine-readable command tree.");
+            RealOut.WriteLine("accumulate — Accumulate SDK CLI\n");
+            foreach (var v in Verbs) RealOut.WriteLine($"  {v.Name,-20} {v.Summary}");
+            RealOut.WriteLine("\nRun with --json --help for the machine-readable command tree.");
             return ExitOk;
         }
 
