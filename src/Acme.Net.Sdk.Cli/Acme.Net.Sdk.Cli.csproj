@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    RB-04 structured CLI, packaged as a dotnet tool.
+
+    This is a SEPARATE project rather than flags on Acme.Net.Sdk, which the runbook
+    suggested. `PackAsTool` requires `OutputType=Exe`; setting that on the library
+    would turn the published package into an executable and break every consumer
+    that references it as a library. A tool project that references the library is
+    the only way to ship both.
+
+    Install:  dotnet tool install -g Acme.Net.Sdk.Cli
+    Invoke:   accumulate (json) version
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>accumulate</AssemblyName>
+    <RootNamespace>Acme.Net.Sdk.Cli</RootNamespace>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>accumulate</ToolCommandName>
+    <PackageId>Acme.Net.Sdk.Cli</PackageId>
+    <Version>2.3.3</Version>
+    <Description>Structured command-line interface for the Accumulate .NET SDK. Emits a single JSON envelope under --json, with canonical ACC_* error codes and meaningful exit codes.</Description>
+
+    <!-- stdout is protocol in json mode: never let the SDK or MSBuild banner leak. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Acme.Net.Sdk\Acme.Net.Sdk.csproj" />
+  </ItemGroup>
+
+</Project>
