@@ -265,7 +265,13 @@ namespace Acme.Net.Sdk.Codec
         /// Field 1: TransactionType (uvarint)
         /// Remaining fields depend on the transaction type.
         /// </summary>
-        internal static byte[] MarshalBody(Dictionary<string, object?> body)
+        /// <summary>
+        /// Marshal a transaction body to its signing bytes.
+        /// Public so the byte layout can be compared against the other SDKs: a
+        /// field number that silently disagrees with the protocol is otherwise
+        /// only visible as a transaction the network rejects as unsigned.
+        /// </summary>
+        public static byte[] MarshalBody(Dictionary<string, object?> body)
         {
             var typeName = GetStringValue(body, "type")
                 ?? throw new AccumulateEncodingException("Transaction body must have a 'type' field");
@@ -441,8 +447,8 @@ namespace Acme.Net.Sdk.Codec
             var tokenUrl = GetStringValue(body, "tokenUrl");
             if (tokenUrl != null) m.WriteUrl(3, new Url(tokenUrl));
 
-            // tag 05: authorities (repeated)
-            WriteAuthorities(m, body, 5);
+            // tag 07: authorities (repeated) — protocol field number, not 5
+            WriteAuthorities(m, body, 7);
         }
 
         private static void MarshalCreateDataAccount(Marshaller m, Dictionary<string, object?> body)
@@ -607,6 +613,9 @@ namespace Acme.Net.Sdk.Codec
             // tag 03: publicKeyHash (bytes, length-prefixed — NOT hash encoding)
             var publicKeyHash = GetStringValue(body, "publicKeyHash");
             if (publicKeyHash != null) m.WriteBytes(3, Convert.FromHexString(publicKeyHash));
+
+            // tag 05: authorities (repeated)
+            WriteAuthorities(m, body, 5);
         }
 
         private static void MarshalAddCredits(Marshaller m, Dictionary<string, object?> body)
