@@ -69,8 +69,11 @@ namespace Acme.Net.Sdk.Transactions
                 ["keyBookUrl"] = keyBookUrl,
                 ["keyHash"] = publicKeyHash,
             };
+            // The protocol field is a repeated URL, so it serialises as a plain
+            // array of strings. Wrapping each entry in { "url": ... } produces
+            // JSON the node cannot unmarshal, even though the binary hash matches.
             if (authorities != null && authorities.Count > 0)
-                body["authorities"] = authorities.Select(a => new Dictionary<string, object?> { ["url"] = a }).ToList();
+                body["authorities"] = new List<string>(authorities);
             return body;
         }
 
@@ -96,8 +99,11 @@ namespace Acme.Net.Sdk.Transactions
                 ["type"] = "createIdentity",
                 ["url"] = url,
             };
+            // The protocol field is a repeated URL, so it serialises as a plain
+            // array of strings. Wrapping each entry in { "url": ... } produces
+            // JSON the node cannot unmarshal, even though the binary hash matches.
             if (authorities != null && authorities.Count > 0)
-                body["authorities"] = authorities.Select(a => new Dictionary<string, object?> { ["url"] = a }).ToList();
+                body["authorities"] = new List<string>(authorities);
             return body;
         }
 
@@ -145,8 +151,11 @@ namespace Acme.Net.Sdk.Transactions
                 ["url"] = url,
                 ["tokenUrl"] = tokenUrl,
             };
+            // The protocol field is a repeated URL, so it serialises as a plain
+            // array of strings. Wrapping each entry in { "url": ... } produces
+            // JSON the node cannot unmarshal, even though the binary hash matches.
             if (authorities != null && authorities.Count > 0)
-                body["authorities"] = authorities.Select(a => new Dictionary<string, object?> { ["url"] = a }).ToList();
+                body["authorities"] = new List<string>(authorities);
             return body;
         }
 
@@ -161,8 +170,11 @@ namespace Acme.Net.Sdk.Transactions
                 ["precision"] = precision,
             };
             if (supplyLimit != null) body["supplyLimit"] = supplyLimit;
+            // The protocol field is a repeated URL, so it serialises as a plain
+            // array of strings. Wrapping each entry in { "url": ... } produces
+            // JSON the node cannot unmarshal, even though the binary hash matches.
             if (authorities != null && authorities.Count > 0)
-                body["authorities"] = authorities.Select(a => new Dictionary<string, object?> { ["url"] = a }).ToList();
+                body["authorities"] = new List<string>(authorities);
             return body;
         }
 
@@ -209,8 +221,11 @@ namespace Acme.Net.Sdk.Transactions
                 ["type"] = "createDataAccount",
                 ["url"] = url,
             };
+            // The protocol field is a repeated URL, so it serialises as a plain
+            // array of strings. Wrapping each entry in { "url": ... } produces
+            // JSON the node cannot unmarshal, even though the binary hash matches.
             if (authorities != null && authorities.Count > 0)
-                body["authorities"] = authorities.Select(a => new Dictionary<string, object?> { ["url"] = a }).ToList();
+                body["authorities"] = new List<string>(authorities);
             return body;
         }
 

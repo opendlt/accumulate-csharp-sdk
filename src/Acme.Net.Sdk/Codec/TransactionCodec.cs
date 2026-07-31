@@ -760,12 +760,16 @@ namespace Acme.Net.Sdk.Codec
             {
                 foreach (var auth in authorities)
                 {
-                    var authDict = ToDictionary(auth);
-                    if (authDict != null)
+                    // Authorities are plain URL strings. The nested { "url": ... }
+                    // form is still accepted so bodies built by older callers keep
+                    // hashing to the same bytes.
+                    string? authUrl = auth as string;
+                    if (authUrl == null)
                     {
-                        var authUrl = GetStringValue(authDict, "url");
-                        if (authUrl != null) m.WriteUrl(fieldNr, new Url(authUrl));
+                        var authDict = ToDictionary(auth);
+                        if (authDict != null) authUrl = GetStringValue(authDict, "url");
                     }
+                    if (!string.IsNullOrEmpty(authUrl)) m.WriteUrl(fieldNr, new Url(authUrl!));
                 }
             }
         }

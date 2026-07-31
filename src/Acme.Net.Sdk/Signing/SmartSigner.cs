@@ -266,16 +266,23 @@ namespace Acme.Net.Sdk.Signing
             var meta = await ComputeMetadataAsync().ConfigureAwait(false);
             var myPub = Convert.ToHexString(meta.PublicKey).ToLowerInvariant();
 
-            // Refuse a duplicate: the same key signing twice does not advance the
-            // threshold, and the node rejects the envelope.
+            // Refuse a duplicate: the same key signing twice as the SAME signer
+            // does not advance that page's threshold, and the node rejects the
+            // envelope. The signer URL is part of the identity: one key may
+            // legitimately sign as two different pages when a transaction needs
+            // several authorities to approve — creating an account governed by
+            // another book, for instance.
+            var mySigner = (SignerUrl ?? "").TrimEnd('/');
             foreach (var s in sigs)
             {
                 if (s is Dictionary<string, object?> d &&
                     d.TryGetValue("publicKey", out var pk) &&
-                    string.Equals(pk as string, myPub, StringComparison.OrdinalIgnoreCase))
+                    string.Equals(pk as string, myPub, StringComparison.OrdinalIgnoreCase) &&
+                    d.TryGetValue("signer", out var sg) &&
+                    string.Equals((sg as string ?? "").TrimEnd('/'), mySigner, StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
-                        "this key has already signed the envelope; a threshold needs DISTINCT signers");
+                        $"this key has already signed the envelope as {SignerUrl}; a threshold needs DISTINCT signers");
                 }
             }
 
