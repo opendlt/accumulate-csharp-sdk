@@ -142,12 +142,14 @@ internal static class Program
                 new VerbFlag("--param", "key=value", false, null, true),
                 new VerbFlag("--out", "path", false),
             }),
-        new("tx sign", "Sign a transaction body into a submittable envelope", true, true,
+        new("tx sign", "Sign a body into an envelope, or co-sign an existing envelope (M-of-N)",
+            true, true,
             Array.Empty<VerbArg>(),
             new[]
             {
-                new VerbFlag("--body", "path", true),
-                new VerbFlag("--principal", "string", true),
+                new VerbFlag("--body", "path", false),
+                new VerbFlag("--envelope", "path", false),
+                new VerbFlag("--principal", "string", false),
                 new VerbFlag("--signer", "string", true),
                 new VerbFlag("--key-file", "path", false),
                 new VerbFlag("--key-env", "string", false),
@@ -398,6 +400,33 @@ internal static class Program
             "signing requires an explicit key source: --key-file <path> or --key-env <VAR>. " +
             "No ambient default key is ever used.");
     }
+
+
+    /// Read an envelope file into the Dictionary/List shape SmartSigner works with.
+    ///
+    /// System.Text.Json would otherwise hand back JsonElement values, which do not
+    /// match the `List&lt;object?&gt;` / `Dictionary&lt;string, object?&gt;` the signer
+    /// inspects, so co-signing would fail to find the existing signatures.
+    private static Dictionary<string, object?> ReadEnvelope(string json)
+    {
+        var node = JsonNode.Parse(json) as JsonObject
+            ?? throw new UsageException("envelope is not a JSON object");
+        // Accept both the bare envelope and the {"envelope": {...}} submit shape.
+        if (node["envelope"] is JsonObject inner) node = inner;
+        return (Dictionary<string, object?>)ToClr(node)!;
+    }
+
+    private static object? ToClr(JsonNode? n) => n switch
+    {
+        null => null,
+        JsonObject o => o.ToDictionary(kv => kv.Key, kv => ToClr(kv.Value)),
+        JsonArray arr => arr.Select(ToClr).ToList(),
+        JsonValue v when v.TryGetValue<string>(out var s) => s,
+        JsonValue v when v.TryGetValue<bool>(out var b) => b,
+        JsonValue v when v.TryGetValue<long>(out var i) => i,
+        JsonValue v when v.TryGetValue<double>(out var d) => d,
+        _ => n.ToJsonString(),
+    };
 
     private static string BaseUrl(string network)
     {
@@ -797,11 +826,14 @@ internal static class Program
                 // bytes are consensus-visible and a second implementation is how
                 // they drift.
                 var privateHex = LoadPrivateKey(a);
-                var bodyPath = Str(a, "body")!;
-                if (!File.Exists(bodyPath)) throw new UsageException($"no such body file: {bodyPath}");
-                var bodyJson = await File.ReadAllTextAsync(bodyPath).ConfigureAwait(false);
-                var body = JsonSerializer.Deserialize<Dictionary<string, object?>>(bodyJson)
-                    ?? throw new UsageException("body is not a JSON object");
+                var bodyPath = Str(a, "body");
+                var envPath = Str(a, "envelope");
+                if ((bodyPath is null) == (envPath is null))
+                {
+                    throw new UsageException(
+                        "pass exactly one of --body (start a new transaction) or " +
+                        "--envelope (co-sign an existing one for an M-of-N threshold)");
+                }
 
                 byte[] seed;
                 try { seed = Convert.FromHexString(privateHex); }
@@ -814,15 +846,40 @@ internal static class Program
 
                 using var v3 = new Acme.Net.Sdk.V3.AccumulateV3Client($"{baseUrl}/v3");
                 var signer = new Acme.Net.Sdk.Signing.SmartSigner(v3, kp, Str(a, "signer")!);
-                var envelope = await signer
-                    .SignAsync(Str(a, "principal")!, body)
-                    .ConfigureAwait(false);
+
+                Dictionary<string, object?> envelope;
+                bool cosigned;
+                if (envPath is not null)
+                {
+                    if (!File.Exists(envPath)) throw new UsageException($"no such envelope file: {envPath}");
+                    var envJson = await File.ReadAllTextAsync(envPath).ConfigureAwait(false);
+                    var existing = ReadEnvelope(envJson);
+                    envelope = await signer.SignExistingAsync(existing).ConfigureAwait(false);
+                    cosigned = true;
+                }
+                else
+                {
+                    if (!File.Exists(bodyPath)) throw new UsageException($"no such body file: {bodyPath}");
+                    if (Str(a, "principal") is null)
+                        throw new UsageException("--principal is required when signing a --body");
+                    var bodyJson = await File.ReadAllTextAsync(bodyPath!).ConfigureAwait(false);
+                    var body = JsonSerializer.Deserialize<Dictionary<string, object?>>(bodyJson)
+                        ?? throw new UsageException("body is not a JSON object");
+                    envelope = await signer
+                        .SignAsync(Str(a, "principal")!, body)
+                        .ConfigureAwait(false);
+                    cosigned = false;
+                }
+
                 var envNode = JsonSerializer.SerializeToNode(envelope);
+                var sigCount = (envelope.TryGetValue("signatures", out var sc) && sc is List<object?> l)
+                    ? l.Count : 0;
                 var signOut = Str(a, "out");
                 if (signOut is not null) File.WriteAllText(signOut, envNode?.ToJsonString() ?? "{}");
                 return Ok(new JsonObject
                 {
-                    ["signed"] = true, ["principal"] = Str(a, "principal"),
+                    ["signed"] = true, ["cosigned"] = cosigned, ["signatures"] = sigCount,
+                    ["principal"] = Str(a, "principal"),
                     ["signer"] = Str(a, "signer"), ["envelope"] = envNode, ["out"] = signOut,
                 });
             }
@@ -840,6 +897,24 @@ internal static class Program
                 var r = await Rpc(baseUrl, "v3", "submit",
                     new JsonObject { ["envelope"] = envelope }).ConfigureAwait(false);
                 if (r?["error"] is { } err) return Fail(RpcErrorText(err));
+                // A response without an RPC error does NOT mean the transaction was
+                // accepted: V3 returns one status per message, and a rejected
+                // envelope shows up as `failed: true` inside them. Reporting that as
+                // success is the "submitted != delivered" trap.
+                var failures = new List<string>();
+                if (r?["result"] is JsonArray items)
+                {
+                    foreach (var item in items)
+                    {
+                        var st = item?["status"];
+                        if (st?["failed"]?.GetValue<bool>() == true)
+                        {
+                            failures.Add(st?["error"]?["message"]?.GetValue<string>()
+                                ?? st?["code"]?.GetValue<string>() ?? "unknown");
+                        }
+                    }
+                }
+                if (failures.Count > 0) return Fail(string.Join("; ", failures));
                 return Ok(new JsonObject
                 {
                     ["submitted"] = true, ["result"] = r?["result"]?.DeepClone(),

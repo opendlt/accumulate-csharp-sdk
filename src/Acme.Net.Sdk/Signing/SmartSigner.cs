@@ -230,6 +230,64 @@ namespace Acme.Net.Sdk.Signing
         }
 
         /// <summary>
+        /// Co-sign an EXISTING envelope, appending this signer's signature.
+        /// </summary>
+        /// <remarks>
+        /// This is what a multi-signature (M-of-N) flow needs, and it is NOT the
+        /// same as calling <see cref="SignAsync"/> twice. That method derives the
+        /// transaction's <c>initiator</c> from the FIRST signer's metadata and
+        /// bakes it into the header, so the transaction hash is a function of that
+        /// signer. Signing the same body again with a different key therefore
+        /// produces a different transaction, and neither ever reaches threshold.
+        /// A co-signer must instead sign a preimage over the EXISTING transaction
+        /// hash using its own metadata. The hash is read from the envelope's first
+        /// signature rather than recomputed, so this is exact for every
+        /// transaction type, including writeData whose body hash differs.
+        /// </remarks>
+        public async Task<Dictionary<string, object?>> SignExistingAsync(
+            Dictionary<string, object?> envelope)
+        {
+            if (envelope is null) throw new ArgumentNullException(nameof(envelope));
+
+            if (!envelope.TryGetValue("signatures", out var sigsObj) ||
+                sigsObj is not List<object?> sigs || sigs.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "envelope has no existing signature to co-sign; sign it first");
+            }
+            if (sigs[0] is not Dictionary<string, object?> first ||
+                !first.TryGetValue("transactionHash", out var thObj) ||
+                thObj is not string txHashHex || string.IsNullOrEmpty(txHashHex))
+            {
+                throw new InvalidOperationException("existing signature has no transactionHash");
+            }
+            var txHash = Convert.FromHexString(txHashHex);
+
+            var meta = await ComputeMetadataAsync().ConfigureAwait(false);
+            var myPub = Convert.ToHexString(meta.PublicKey).ToLowerInvariant();
+
+            // Refuse a duplicate: the same key signing twice does not advance the
+            // threshold, and the node rejects the envelope.
+            foreach (var s in sigs)
+            {
+                if (s is Dictionary<string, object?> d &&
+                    d.TryGetValue("publicKey", out var pk) &&
+                    string.Equals(pk as string, myPub, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        "this key has already signed the envelope; a threshold needs DISTINCT signers");
+                }
+            }
+
+            var outSigs = new List<object?>(sigs) { BuildSignature(txHash, meta) };
+            return new Dictionary<string, object?>
+            {
+                ["signatures"] = outSigs,
+                ["transaction"] = envelope.TryGetValue("transaction", out var tx) ? tx : null,
+            };
+        }
+
+        /// <summary>
         /// Sign a transaction and submit it to the network.
         /// Returns the raw JSON response from the submission.
         /// </summary>
