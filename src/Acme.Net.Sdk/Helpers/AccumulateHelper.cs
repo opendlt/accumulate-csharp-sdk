@@ -28,7 +28,11 @@ namespace Acme.Net.Sdk.Helpers
                 try
                 {
                     var balance = await GetBalanceAsync(url).ConfigureAwait(false);
-                    if (balance > minAmount)
+                    // `>=`, not `>`: the contract is "wait until at least
+                    // minAmount". With `>`, asking for exactly the amount you
+                    // just sent polls until the deadline and then reports 0,
+                    // which reads as a failed transfer that in fact succeeded.
+                    if (balance >= minAmount && balance > 0)
                         return balance;
                 }
                 catch
@@ -53,7 +57,8 @@ namespace Acme.Net.Sdk.Helpers
                 try
                 {
                     var credits = await GetCreditsAsync(url).ConfigureAwait(false);
-                    if (credits > minCredits)
+                    // See PollForBalanceAsync: "at least" must include equality.
+                    if (credits >= minCredits && credits > 0)
                         return credits;
                 }
                 catch
