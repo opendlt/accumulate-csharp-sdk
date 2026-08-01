@@ -24,7 +24,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>accumulate</ToolCommandName>
     <PackageId>Acme.Net.Sdk.Cli</PackageId>
-    <Version>2.3.8</Version>
+    <Version>2.3.9</Version>
     <Description>Structured command-line interface for the Accumulate .NET SDK. Emits a single JSON envelope under --json, with canonical ACC_* error codes and meaningful exit codes.</Description>
 
     <!-- stdout is protocol in json mode: never let the SDK or MSBuild banner leak. -->

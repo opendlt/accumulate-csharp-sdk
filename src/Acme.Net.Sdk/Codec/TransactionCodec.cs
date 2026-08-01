@@ -653,11 +653,18 @@ namespace Acme.Net.Sdk.Codec
 
                     using var om = new Marshaller();
                     var opType = GetStringValue(opDict, "type");
+                    // Update is 1 and Remove is 2. These were swapped here and in
+                    // KeyPageOperationType, which does not fail loudly: the SDK
+                    // signs a preimage with the wrong opcode while the node
+                    // re-marshals the same JSON body with the right one, so the
+                    // hashes differ and the node reports only "transaction is not
+                    // signed". Add = 3 was correct, which is why adding keys
+                    // worked while removing one never could.
                     int opTypeCode = opType switch
                     {
+                        "update" => 1,
+                        "remove" => 2,
                         "add" => 3,
-                        "remove" => 1,
-                        "update" => 2,
                         "setThreshold" => 4,
                         "updateAllowed" => 5,
                         "setRejectThreshold" => 6,

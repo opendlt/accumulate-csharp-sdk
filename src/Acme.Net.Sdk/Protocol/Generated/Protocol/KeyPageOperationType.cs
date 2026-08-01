@@ -7,19 +7,31 @@ namespace Acme.Net.Sdk.Protocol.Generated.Protocol
     public enum KeyPageOperationType
     {
         /// <summary>
-        /// Add a key to the key page.
+        /// Unknown / unset.
         /// </summary>
-        Add = 3,
+        Unknown = 0,
+
+        /// <summary>
+        /// Update (replace) a key in the key page.
+        /// </summary>
+        /// <remarks>
+        /// Update is 1 and Remove is 2. These were swapped, which does not fail
+        /// loudly: the SDK signs a preimage with the wrong opcode while the node
+        /// re-marshals the same JSON body with the right one, so the transaction
+        /// hashes differ and the node reports only "transaction is not signed".
+        /// Add = 3 was correct, which is why adding keys worked throughout.
+        /// </remarks>
+        Update = 1,
 
         /// <summary>
         /// Remove a key from the key page.
         /// </summary>
-        Remove = 1,
+        Remove = 2,
 
         /// <summary>
-        /// Update a key in the key page.
+        /// Add a key to the key page.
         /// </summary>
-        Update = 2,
+        Add = 3,
 
         /// <summary>
         /// Set the threshold for the key page.
