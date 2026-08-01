@@ -434,8 +434,17 @@ namespace Acme.Net.Sdk.Signing
             // If polling fails (e.g. tx not yet indexed), still return success
             if (submitSuccess && !string.IsNullOrEmpty(txId))
             {
+                // Bound the WHOLE poll, not just the attempt count. Each query can
+                // block for the client's HTTP timeout (90s by default), so
+                // `maxAttempts` alone permits 30 x 92s — about 46 minutes — when the
+                // endpoint is slow to answer. Observed as SignSubmitAndWaitAsync
+                // hanging well past ten minutes on a single call. The deadline keeps
+                // the call proportional to what the caller actually asked to wait.
+                var pollDeadline = DateTimeOffset.UtcNow + TimeSpan.FromTicks(interval.Ticks * maxAttempts)
+                                   + TimeSpan.FromSeconds(30);
+
                 // Brief poll to confirm delivery
-                for (int i = 0; i < maxAttempts; i++)
+                for (int i = 0; i < maxAttempts && DateTimeOffset.UtcNow < pollDeadline; i++)
                 {
                     try
                     {
@@ -633,7 +642,12 @@ namespace Acme.Net.Sdk.Signing
             // A V3 transaction query reports status as a string ("pending"/"delivered") with a
             // statusNo (Delivered=201, Pending=202 — Go core pkg/errors/status.yml), OR (on some
             // responses) as an object with a `delivered` bool. Handle both.
-            for (int i = 0; i < maxAttempts; i++)
+            // Same wall-clock bound as SignSubmitAndWaitAsync: attempt counts alone
+            // do not limit a poll whose every query can block for the HTTP timeout.
+            var coSignDeadline = DateTimeOffset.UtcNow + TimeSpan.FromTicks(interval.Ticks * maxAttempts)
+                                 + TimeSpan.FromSeconds(30);
+
+            for (int i = 0; i < maxAttempts && DateTimeOffset.UtcNow < coSignDeadline; i++)
             {
                 try
                 {

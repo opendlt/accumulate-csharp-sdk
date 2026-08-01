@@ -188,7 +188,10 @@ namespace Acme.Net.Sdk.Protocol
             {
                 // In Java, the authority() method returns the URI.getHost(), not the Authority property
                 // This is why we need to use HostName instead of Authority
-                urlBuilder.Append('/').Append(mergeUrl.HostName);
+                // HostNameRaw, not HostName: Uri.Host lowercases, which turns the
+                // ACME lite token account into `/acme`. Account lookup is
+                // case-sensitive, so that URL 404s on every query.
+                urlBuilder.Append('/').Append(mergeUrl.HostNameRaw);
             }
             
             // Use Url.Parse which handles acc:// prefixing if needed (though already added here)

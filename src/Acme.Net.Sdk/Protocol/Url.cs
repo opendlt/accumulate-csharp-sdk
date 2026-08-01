@@ -115,6 +115,27 @@ namespace Acme.Net.Sdk.Protocol
         public string HostName => _uri.Host;
 
         /// <summary>
+        /// Gets the host name with its ORIGINAL casing.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Uri.Host"/> lowercases, but Accumulate account URLs are
+        /// case-sensitive on lookup: the ACME token account is `/ACME`, so a
+        /// lite token account built from <c>HostName</c> resolves to `/acme`
+        /// and every query against it returns notFound.
+        /// </remarks>
+        public string HostNameRaw
+        {
+            get
+            {
+                var s = _originalString;
+                var start = s.StartsWith("acc://", StringComparison.OrdinalIgnoreCase) ? 6 : 0;
+                var end = s.IndexOf('/', start);
+                var authority = end < 0 ? s.Substring(start) : s.Substring(start, end - start);
+                return authority.Length == 0 ? _uri.Host : authority;
+            }
+        }
+
+        /// <summary>
         /// Gets the absolute path of the URL, stripping any trailing slash.
         /// </summary>
         public string Path
