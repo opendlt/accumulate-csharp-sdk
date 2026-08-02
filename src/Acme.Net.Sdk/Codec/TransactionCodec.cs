@@ -552,15 +552,46 @@ namespace Acme.Net.Sdk.Codec
 
         private static void MarshalIssueTokens(Marshaller m, Dictionary<string, object?> body)
         {
-            // tag 02: recipient
-            var recipient = GetStringValue(body, "recipient");
-            if (recipient != null) m.WriteUrl(2, new Url(recipient));
-
-            // tag 03: amount
-            var amount = GetStringValue(body, "amount");
-            if (amount != null)
+            // tag 04 (repeated): recipients, each { 1: url, 2: amount }.
+            //
+            // This previously wrote a single { 2: recipient, 3: amount } pair, an
+            // obsolete shape. The body carries `to`, so nothing was written at
+            // all beyond the type byte: an IssueTokens marshalled to `0109` while
+            // Python, Rust and Dart produced the full recipient list. The signing
+            // preimage therefore did not describe the transaction being sent, and
+            // the node rejected it as unsigned.
+            var to = GetListValue(body, "to");
+            if (to != null)
             {
-                var bigAmount = BigInteger.Parse(amount);
+                foreach (var recipient in to)
+                {
+                    var recipientDict = ToDictionary(recipient);
+                    if (recipientDict == null) continue;
+
+                    using var rm = new Marshaller();
+                    var url = GetStringValue(recipientDict, "url");
+                    if (url != null) rm.WriteUrl(1, new Url(url));
+                    var amt = GetStringValue(recipientDict, "amount");
+                    if (amt != null)
+                    {
+                        var big = BigInteger.Parse(amt);
+                        var bytes = big.Sign == 0
+                            ? Array.Empty<byte>()
+                            : big.ToByteArray(isUnsigned: true, isBigEndian: true);
+                        rm.WriteBytes(2, bytes);
+                    }
+                    m.WriteBytes(4, rm.GetBytes());
+                }
+                return;
+            }
+
+            // Legacy single-recipient form, kept so older callers still marshal.
+            var legacyRecipient = GetStringValue(body, "recipient");
+            if (legacyRecipient != null) m.WriteUrl(2, new Url(legacyRecipient));
+            var legacyAmount = GetStringValue(body, "amount");
+            if (legacyAmount != null)
+            {
+                var bigAmount = BigInteger.Parse(legacyAmount);
                 var amountBytes = bigAmount.Sign == 0
                     ? Array.Empty<byte>()
                     : bigAmount.ToByteArray(isUnsigned: true, isBigEndian: true);
