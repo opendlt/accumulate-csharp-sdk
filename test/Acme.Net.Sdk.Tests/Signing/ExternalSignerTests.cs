@@ -154,6 +154,40 @@ namespace Acme.Net.Sdk.Tests.Signing
         }
 
         /// <summary>
+        /// The key page entry is sha256 of the WIRE public key, whatever the type. For ECDSA that
+        /// means the SPKI DER — hashing the raw EC point instead yields an entry that never matches
+        /// the signature, and nothing reports why.
+        /// </summary>
+        [Fact]
+        public void ThePublicKeyHashIsOverTheWireBytes()
+        {
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var spki = ecdsa.ExportSubjectPublicKeyInfo();
+            var external = new ExternalSigner(SignatureType.ECDSA_SHA256, spki, _ => new byte[] { 1 });
+
+            Assert.Equal(SHA256.HashData(spki), external.GetPublicKeyHash());
+
+            // The trap: the raw point is a different, silently wrong entry.
+            var rawPoint = ecdsa.ExportParameters(false).Q.X!.Concat(ecdsa.ExportParameters(false).Q.Y!).ToArray();
+            Assert.NotEqual(SHA256.HashData(rawPoint), external.GetPublicKeyHash());
+        }
+
+        /// <summary>
+        /// Ed25519 keeps the behaviour every existing caller and example relies on: sha256 of the
+        /// raw 32-byte key.
+        /// </summary>
+        [Fact]
+        public void TheEd25519PublicKeyHashIsOverTheRawKey()
+        {
+            var seed = new byte[32];
+            for (int i = 0; i < seed.Length; i++) seed[i] = (byte)(i + 1);
+            Assert.True(SignatureKeyPair.TryImportFromSecretKeyBytes(seed, SignatureType.ED25519, out var kp));
+            using var keypair = kp;
+
+            Assert.Equal(SHA256.HashData(keypair.GetPublicKey()), keypair.GetPublicKeyHash());
+        }
+
+        /// <summary>
         /// The public key is copied in both directions, so a caller cannot mutate what the signer
         /// will put on the wire.
         /// </summary>

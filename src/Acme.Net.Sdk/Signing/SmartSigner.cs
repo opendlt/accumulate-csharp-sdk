@@ -745,7 +745,26 @@ namespace Acme.Net.Sdk.Signing
         }
 
         /// <summary>
+        /// Convenience: seat another signer on this signer's key page, hashing its public key the
+        /// way the protocol does. Prefer this over the <see cref="AddKeyAsync(byte[])"/> overload —
+        /// it cannot hash the wrong bytes, because the signer says what its wire public key is.
+        /// </summary>
+        public Task<TransactionResult> AddKeyAsync(IAccumulateSigner signer)
+        {
+            if (signer is null) throw new ArgumentNullException(nameof(signer));
+            return AddKeyAsync(signer.GetPublicKeyHash());
+        }
+
+        /// <summary>
         /// Convenience: add a key to the signer's key page.
+        ///
+        /// <para>
+        /// <paramref name="newPublicKeyHash"/> is <c>sha256</c> of the public key <b>as it goes on
+        /// the wire</b>: the raw 32 bytes for Ed25519, but the PKIX/SPKI DER for ECDSA and RSA —
+        /// never the raw EC point. Getting this wrong yields a page entry that never matches the
+        /// signature, with no error that says so. <see cref="AddKeyAsync(IAccumulateSigner)"/> and
+        /// <see cref="IAccumulateSigner.GetPublicKeyHash"/> compute it correctly for any type.
+        /// </para>
         /// </summary>
         public Task<TransactionResult> AddKeyAsync(byte[] newPublicKeyHash)
         {

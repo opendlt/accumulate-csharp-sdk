@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Acme.Net.Sdk.Protocol.Generated; // SignatureType
 
 namespace Acme.Net.Sdk.Signing
@@ -45,5 +46,31 @@ namespace Acme.Net.Sdk.Signing
         /// </para>
         /// </summary>
         byte[] SignPreimage(byte[] preimage);
+    }
+
+    /// <summary>
+    /// Helpers every <see cref="IAccumulateSigner"/> gets for free.
+    /// </summary>
+    public static class AccumulateSignerExtensions
+    {
+        /// <summary>
+        /// This signer's key page entry: <c>sha256</c> of the public key exactly as it goes on the
+        /// wire. Pass it to <see cref="SmartSigner.AddKeyAsync(byte[])"/>, or use the
+        /// <see cref="SmartSigner.AddKeyAsync(IAccumulateSigner)"/> overload, which calls this for you.
+        ///
+        /// <para>
+        /// Defined in terms of <see cref="IAccumulateSigner.GetPublicKey"/>, so it is right for
+        /// every signature type without the caller having to know which encoding applies: raw 32
+        /// bytes for Ed25519, PKIX/SPKI DER for ECDSA and RSA. Hashing the wrong bytes — the raw EC
+        /// point rather than the DER, the usual mistake — produces a page entry that simply never
+        /// matches the signature, and the node reports nothing more useful than a signature it will
+        /// not accept.
+        /// </para>
+        /// </summary>
+        public static byte[] GetPublicKeyHash(this IAccumulateSigner signer)
+        {
+            if (signer is null) throw new ArgumentNullException(nameof(signer));
+            return SHA256.HashData(signer.GetPublicKey());
+        }
     }
 }
