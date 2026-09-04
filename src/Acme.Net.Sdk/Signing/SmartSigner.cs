@@ -28,7 +28,7 @@ namespace Acme.Net.Sdk.Signing
     public class SmartSigner
     {
         private readonly AccumulateV3Client _client;
-        private readonly SignatureKeyPair _keypair;
+        private readonly IAccumulateSigner _signer;
         private int? _cachedVersion;
         private long? _cachedCredits;
 
@@ -38,14 +38,29 @@ namespace Acme.Net.Sdk.Signing
         public string SignerUrl { get; }
 
         /// <summary>
-        /// The signature algorithm (currently always ED25519).
+        /// The signature type this signer produces. ED25519 for a <see cref="SignatureKeyPair"/>;
+        /// whatever an <see cref="IAccumulateSigner"/> declares otherwise.
         /// </summary>
-        public SignatureType Algorithm => _keypair.Type;
+        public SignatureType Algorithm => _signer.SignatureType;
 
+        /// <summary>
+        /// Sign with an in-process Ed25519 key pair.
+        /// </summary>
         public SmartSigner(AccumulateV3Client client, SignatureKeyPair keypair, string signerUrl)
+            : this(client, (IAccumulateSigner)(keypair ?? throw new ArgumentNullException(nameof(keypair))), signerUrl)
+        {
+        }
+
+        /// <summary>
+        /// Sign with any <see cref="IAccumulateSigner"/> — including <see cref="ExternalSigner"/>,
+        /// which wraps a key this process cannot read (smartcard, CNG, HSM, KMS, remote service).
+        /// Everything else about signing and submission is unchanged: the metadata, the transaction
+        /// hash and the preimage do not depend on the signature type.
+        /// </summary>
+        public SmartSigner(AccumulateV3Client client, IAccumulateSigner signer, string signerUrl)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
-            _keypair = keypair ?? throw new ArgumentNullException(nameof(keypair));
+            _signer = signer ?? throw new ArgumentNullException(nameof(signer));
             SignerUrl = signerUrl ?? throw new ArgumentNullException(nameof(signerUrl));
         }
 
@@ -145,7 +160,7 @@ namespace Acme.Net.Sdk.Signing
         {
             var version = await GetSignerVersionAsync().ConfigureAwait(false);
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000L;
-            var publicKey = _keypair.GetPublicKey();
+            var publicKey = _signer.GetPublicKey();
             int voteInt = vote.HasValue ? (int)vote.Value : 0;
 
             var metadataHash = TransactionCodec.ComputeSignatureMetadataHash(
@@ -164,7 +179,7 @@ namespace Acme.Net.Sdk.Signing
         public Dictionary<string, object?> BuildSignature(byte[] txHash, SignerMetadata meta)
         {
             var preimage = TransactionCodec.CreateSigningPreimage(meta.MetadataHash, txHash);
-            var signatureBytes = SignatureAlgorithm.Ed25519.Sign(_keypair.GetKey(), preimage);
+            var signatureBytes = _signer.SignPreimage(preimage);
 
             var signature = new Dictionary<string, object?>
             {
