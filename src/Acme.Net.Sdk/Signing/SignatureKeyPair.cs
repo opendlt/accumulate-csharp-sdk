@@ -8,8 +8,14 @@ namespace Acme.Net.Sdk.Signing
     /// <summary>
     /// Canonical key pair for Accumulate signing. Always derives the public key
     /// and the signing key from the EXACT SAME 32-byte Ed25519 seed via NSec.
+    ///
+    /// <para>
+    /// This holds key material in the process, so it can only ever be Ed25519. For a key that
+    /// lives in a smartcard, a CNG provider, an HSM or a KMS, use <see cref="ExternalSigner"/> —
+    /// both are <see cref="IAccumulateSigner"/> and <see cref="SmartSigner"/> takes either.
+    /// </para>
     /// </summary>
-    public sealed class SignatureKeyPair : IDisposable
+    public sealed class SignatureKeyPair : IDisposable, IAccumulateSigner
     {
         private readonly byte[] _seed32;   // immutable 32-byte Ed25519 seed
         private readonly byte[] _pub32;    // derived from _seed32 once
@@ -91,6 +97,20 @@ namespace Acme.Net.Sdk.Signing
         /// Return a copy of the raw 32-byte public key.
         /// </summary>
         public byte[] GetPublicKey() => (byte[])_pub32.Clone();
+
+        /// <summary>
+        /// <see cref="IAccumulateSigner.SignatureType"/>. Implemented explicitly so the existing
+        /// <see cref="Type"/> property stays the one callers use.
+        /// </summary>
+        SignatureType IAccumulateSigner.SignatureType => Type;
+
+        /// <summary>
+        /// Sign the 32-byte preimage with Ed25519. NSec signs the bytes it is given, which is
+        /// correct here: the preimage is already sha256(metadataHash || txHash), and Ed25519's own
+        /// hashing is part of the algorithm rather than a second pass over the message.
+        /// </summary>
+        byte[] IAccumulateSigner.SignPreimage(byte[] preimage)
+            => Alg.Sign(GetKey(), preimage);
 
         /// <summary>
         /// (Optional) Raw 32-byte seed export. Use sparingly.

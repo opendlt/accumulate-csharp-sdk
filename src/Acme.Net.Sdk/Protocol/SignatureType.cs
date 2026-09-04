@@ -4,7 +4,26 @@ namespace Acme.Net.Sdk.Protocol.Generated // Mimicking Java package structure
 {
     /// <summary>
     /// Defines different types of Accumulate signatures.
-    /// Values match the authoritative Go core / Rust SDK definitions.
+    ///
+    /// <para>
+    /// These values are consensus-critical wire values, NOT an arbitrary ordering. The type is
+    /// marshalled as field 1 of the signature metadata, so it feeds the metadata hash, the
+    /// transaction header initiator, and therefore the signing preimage. A wrong value produces a
+    /// perfectly well-formed signature that the node rejects with "transaction is not signed" —
+    /// there is nothing in the crypto or in any log to point at the enum.
+    /// </para>
+    /// <para>
+    /// Authoritative source: Go core <c>protocol/enums_gen.go</c> (<c>SignatureTypeXxx</c>
+    /// constants). Every member below is pinned to it by
+    /// <c>test/Acme.Net.Sdk.Tests/Protocol/SignatureTypeValueTests.cs</c>; if you add or change a
+    /// member, change that test in the same commit or it will fail.
+    /// </para>
+    /// <para>
+    /// Values 4 and up were previously wrong here — invented in declaration order rather than taken
+    /// from the protocol — which silently broke rsaSha256, ecdsaSha256, btc, eth, delegated,
+    /// typedData and authority. It went unnoticed because the SDK had only ever been exercised on
+    /// the Ed25519 path, whose values (1, 2, 3) happened to be right.
+    /// </para>
     /// </summary>
     public enum SignatureType
     {
@@ -20,44 +39,55 @@ namespace Acme.Net.Sdk.Protocol.Generated // Mimicking Java package structure
         [EnumMember(Value = "rcd1")]
         RCD1 = 3,
 
-        [EnumMember(Value = "btc")]
-        BTC = 4,
-
-        [EnumMember(Value = "btcLegacy")]
-        BTC_LEGACY = 5,
-
-        [EnumMember(Value = "eth")]
-        ETH = 6,
-
-        [EnumMember(Value = "delegated")]
-        DELEGATED = 7,
-
-        [EnumMember(Value = "internal")]
-        INTERNAL = 8,
-
-        [EnumMember(Value = "rsaSha256")]
-        RSA_SHA256 = 9,
-
-        [EnumMember(Value = "ecdsaSha256")]
-        ECDSA_SHA256 = 10,
-
-        [EnumMember(Value = "typedData")]
-        TYPED_DATA = 11,
-
-        [EnumMember(Value = "remote")]
-        REMOTE = 12,
-
         [EnumMember(Value = "receipt")]
-        RECEIPT = 13,
+        RECEIPT = 4,
 
         [EnumMember(Value = "partition")]
-        PARTITION = 14,
+        PARTITION = 5,
 
         [EnumMember(Value = "set")]
-        SET = 15,
+        SET = 6,
+
+        [EnumMember(Value = "remote")]
+        REMOTE = 7,
+
+        [EnumMember(Value = "btc")]
+        BTC = 8,
+
+        [EnumMember(Value = "btcLegacy")]
+        BTC_LEGACY = 9,
+
+        [EnumMember(Value = "eth")]
+        ETH = 10,
+
+        [EnumMember(Value = "delegated")]
+        DELEGATED = 11,
+
+        [EnumMember(Value = "internal")]
+        INTERNAL = 12,
 
         [EnumMember(Value = "authority")]
-        AUTHORITY = 16,
+        AUTHORITY = 13,
+
+        /// <summary>
+        /// RSA-SHA256, PKCS#1 v1.5 over the 32-byte signing preimage. The <c>publicKey</c> field is
+        /// PKIX/SPKI DER, and a key page entry is <c>sha256(SPKI DER)</c>.
+        /// Requires an executor at Vandenberg or later on the target network.
+        /// </summary>
+        [EnumMember(Value = "rsaSha256")]
+        RSA_SHA256 = 14,
+
+        /// <summary>
+        /// ECDSA P-256 over the 32-byte signing preimage, ASN.1 DER encoded (NOT raw r||s). The
+        /// <c>publicKey</c> field is PKIX/SPKI DER, and a key page entry is <c>sha256(SPKI DER)</c> —
+        /// never a hash of the raw EC point.
+        /// Requires an executor at Vandenberg or later on the target network.
+        /// </summary>
+        [EnumMember(Value = "ecdsaSha256")]
+        ECDSA_SHA256 = 15,
+
+        [EnumMember(Value = "typedData")]
+        TYPED_DATA = 16,
     }
 
     /// <summary>
