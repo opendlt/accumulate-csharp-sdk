@@ -370,6 +370,51 @@ namespace Acme.Net.Sdk.Transactions
             };
         }
 
+        // ---- Hash locks (Accumulate 1.4.6.7) ----
+
+        /// <summary>
+        /// Builds a <c>releaseLockedOperation</c> body that releases a hash-locked deposit.
+        /// </summary>
+        /// <param name="lockedTxId">The txid of the SyntheticLockedDeposit to release.</param>
+        /// <param name="preimageHex">Hex of the preimage whose hash matches the lock.</param>
+        public static Dictionary<string, object?> ReleaseLockedOperation(string lockedTxId, string preimageHex)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["type"] = "releaseLockedOperation",
+                ["lockedTxID"] = lockedTxId,
+                ["preimage"] = preimageHex,
+            };
+        }
+
+        /// <summary>
+        /// Builds a header <c>hashLock</c> value (header field 8). Pass it as
+        /// <c>new HeaderOptions { HashLock = TxBody.HashLock(...) }</c> to the signing methods.
+        /// </summary>
+        /// <param name="hashAlgorithm">"sha256", "sha256d" or "hash160".</param>
+        /// <param name="hashHex">Hex of the lock hash.</param>
+        /// <param name="expiration">Optional expiration (UTC).</param>
+        public static Dictionary<string, object?> HashLock(string hashAlgorithm, string hashHex, DateTimeOffset? expiration = null)
+        {
+            var d = new Dictionary<string, object?>
+            {
+                ["hashAlgorithm"] = hashAlgorithm,
+                ["hash"] = hashHex,
+            };
+            if (expiration.HasValue)
+                d["expiration"] = expiration.Value.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+            return d;
+        }
+
+        /// <summary>Header <c>expire</c> value (field 5): expire the transaction as pending at <paramref name="atTime"/>.</summary>
+        public static Dictionary<string, object?> Expire(DateTimeOffset atTime) => new()
+        {
+            ["atTime"] = atTime.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture),
+        };
+
+        /// <summary>Header <c>holdUntil</c> value (field 6): hold the transaction as pending until <paramref name="minorBlock"/>.</summary>
+        public static Dictionary<string, object?> HoldUntil(ulong minorBlock) => new() { ["minorBlock"] = minorBlock };
+
         // ---- Other ----
 
         public static Dictionary<string, object?> AcmeFaucet(string url)

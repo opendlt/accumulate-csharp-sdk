@@ -206,6 +206,15 @@ namespace Acme.Net.Sdk.Support
             _writer.Write((byte)value);
         }
 
+        /// <summary>
+        /// Signed (zigzag) varint, as Go's binary.PutVarint. Go writes time fields this way:
+        /// WriteTime stores UTC Unix seconds as a signed varint.
+        /// </summary>
+        public void WriteVarint(int fieldNr, long value)
+        {
+            WriteUVarint(fieldNr, (ulong)((value << 1) ^ (value >> 63)));
+        }
+
         // Helper to check for non-byte arrays
         private static bool IsArrayButNotByteArray(object value)
         {

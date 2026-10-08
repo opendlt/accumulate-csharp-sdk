@@ -44,4 +44,10 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Vectors/accumulate-1.4.6.7-vectors.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

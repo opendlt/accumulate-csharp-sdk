@@ -40,6 +40,47 @@ namespace Acme.Net.Sdk.Protocol.Generated
         public byte[]? Metadata { get; set; }
 
         /// <summary>
+        /// Gets or sets the expiration options (field 5).
+        /// </summary>
+        [JsonProperty("expire", NullValueHandling = NullValueHandling.Ignore)]
+        public ExpireOptions? Expire { get; set; }
+
+        /// <summary>
+        /// Gets or sets the hold-until options (field 6).
+        /// </summary>
+        [JsonProperty("holdUntil", NullValueHandling = NullValueHandling.Ignore)]
+        public HoldUntilOptions? HoldUntil { get; set; }
+
+        /// <summary>
+        /// Gets or sets additional authorities that must approve the transaction (field 7, repeated).
+        /// </summary>
+        [JsonProperty("authorities", NullValueHandling = NullValueHandling.Ignore)]
+        public System.Collections.Generic.List<Url>? Authorities { get; set; }
+
+        /// <summary>
+        /// Gets or sets the hash lock (field 8, Accumulate 1.4.6.7).
+        /// </summary>
+        [JsonProperty("hashLock", NullValueHandling = NullValueHandling.Ignore)]
+        public HashLockOptions? HashLock { get; set; }
+
+        /// <summary>
+        /// Sets the hash lock.
+        /// </summary>
+        public TransactionHeader WithHashLock(HashLockOptions hashLock)
+        {
+            HashLock = hashLock ?? throw new ArgumentNullException(nameof(hashLock));
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the hash lock from its parts.
+        /// </summary>
+        public TransactionHeader WithHashLock(HashLockAlgorithm algorithm, byte[] hash, DateTimeOffset? expiration = null)
+        {
+            return WithHashLock(new HashLockOptions { HashAlgorithm = algorithm, Hash = hash, Expiration = expiration });
+        }
+
+        /// <summary>
         /// Sets the principal URL.
         /// </summary>
         /// <param name="principal">The principal URL.</param>
@@ -155,6 +196,30 @@ namespace Acme.Net.Sdk.Protocol.Generated
                 marshaller.WriteBytes(4, Metadata);
             }
             
+            if (Expire != null)
+            {
+                var b = Expire.MarshalBinary();
+                if (b.Length > 0) marshaller.WriteBytes(5, b);
+            }
+
+            if (HoldUntil != null)
+            {
+                var b = HoldUntil.MarshalBinary();
+                if (b.Length > 0) marshaller.WriteBytes(6, b);
+            }
+
+            if (Authorities != null)
+            {
+                foreach (var authority in Authorities)
+                    marshaller.WriteUrl(7, authority);
+            }
+
+            if (HashLock != null)
+            {
+                var b = HashLock.MarshalBinary();
+                if (b.Length > 0) marshaller.WriteBytes(8, b);
+            }
+
             return marshaller.GetBytes();
         }
     }

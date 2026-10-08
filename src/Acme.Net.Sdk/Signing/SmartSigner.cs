@@ -21,6 +21,17 @@ namespace Acme.Net.Sdk.Signing
         public JsonElement? Response { get; set; }
     }
 
+    /// <summary>Where a submitted transaction stands, as read from a transaction query.</summary>
+    public enum TransactionState
+    {
+        /// <summary>Not delivered yet (pending, remote, not indexed).</summary>
+        Pending,
+        /// <summary>Executed successfully.</summary>
+        Delivered,
+        /// <summary>Rejected or failed; the error says why.</summary>
+        Failed,
+    }
+
     /// <summary>
     /// High-level signer with auto-version tracking, sign+submit+wait convenience.
     /// Matches Dart smart_signer.dart and Python convenience.py SmartSigner.
@@ -203,7 +214,8 @@ namespace Acme.Net.Sdk.Signing
         /// build the canonical header once and have every co-signer sign the identical txHash.
         /// </summary>
         public static Dictionary<string, object?> BuildHeader(
-            string principal, byte[] initiatorMetadataHash, string? memo = null, byte[]? metadata = null)
+            string principal, byte[] initiatorMetadataHash, string? memo = null, byte[]? metadata = null,
+            HeaderOptions? options = null)
         {
             var header = new Dictionary<string, object?>
             {
@@ -213,6 +225,7 @@ namespace Acme.Net.Sdk.Signing
             if (memo != null) header["memo"] = memo;
             if (metadata is { Length: > 0 })
                 header["metadata"] = Convert.ToHexString(metadata).ToLowerInvariant();           // header metadata (tag 4)
+            options?.ApplyTo(header);                                                            // header tags 5-8
             return header;
         }
 
@@ -227,10 +240,11 @@ namespace Acme.Net.Sdk.Signing
             VoteType? vote = null,
             string? signatureMemo = null,
             byte[]? signatureData = null,
-            byte[]? headerMetadata = null)
+            byte[]? headerMetadata = null,
+            HeaderOptions? headerOptions = null)
         {
             var meta = await ComputeMetadataAsync(signatureMemo, signatureData, vote).ConfigureAwait(false);
-            var header = BuildHeader(principal, meta.MetadataHash, memo, headerMetadata);
+            var header = BuildHeader(principal, meta.MetadataHash, memo, headerMetadata, headerOptions);
             var txHash = TransactionCodec.ComputeTransactionHash(header, body);
             var signature = BuildSignature(txHash, meta);
 
@@ -320,9 +334,10 @@ namespace Acme.Net.Sdk.Signing
             VoteType? vote = null,
             string? signatureMemo = null,
             byte[]? signatureData = null,
-            byte[]? headerMetadata = null)
+            byte[]? headerMetadata = null,
+            HeaderOptions? headerOptions = null)
         {
-            var envelope = await SignAsync(principal, body, memo, vote, signatureMemo, signatureData, headerMetadata)
+            var envelope = await SignAsync(principal, body, memo, vote, signatureMemo, signatureData, headerMetadata, headerOptions)
                 .ConfigureAwait(false);
             var results = await _client.SubmitAsync(envelope).ConfigureAwait(false);
             return results.Count > 0 ? results[0] : default;
@@ -340,14 +355,15 @@ namespace Acme.Net.Sdk.Signing
             TimeSpan? pollInterval = null,
             string? signatureMemo = null,
             byte[]? signatureData = null,
-            byte[]? headerMetadata = null)
+            byte[]? headerMetadata = null,
+            HeaderOptions? headerOptions = null)
         {
             var interval = pollInterval ?? TimeSpan.FromSeconds(2);
 
             JsonElement submitResult;
             try
             {
-                submitResult = await SignAndSubmitAsync(principal, body, memo, vote, signatureMemo, signatureData, headerMetadata)
+                submitResult = await SignAndSubmitAsync(principal, body, memo, vote, signatureMemo, signatureData, headerMetadata, headerOptions)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -465,37 +481,23 @@ namespace Acme.Net.Sdk.Signing
                     {
                         var txResult = await _client.QueryTransactionAsync(txId).ConfigureAwait(false);
 
-                        if (txResult.TryGetProperty("status", out var status) &&
-                            status.ValueKind == JsonValueKind.Object)
+                        switch (InterpretTransactionStatus(txResult, out var statusError))
                         {
-                            // Check if delivered
-                            if (status.TryGetProperty("delivered", out var delivered) &&
-                                delivered.ValueKind == JsonValueKind.True)
-                            {
-                                // Check for execution error
-                                if (status.TryGetProperty("error", out var error) &&
-                                    error.ValueKind != JsonValueKind.Null &&
-                                    error.ValueKind != JsonValueKind.Undefined)
-                                {
-                                    var errMsg = error.TryGetProperty("message", out var m)
-                                        ? m.GetString() ?? "Transaction error"
-                                        : error.ToString();
-                                    return new TransactionResult
-                                    {
-                                        Success = false,
-                                        TxId = txId,
-                                        Error = errMsg,
-                                        Response = txResult,
-                                    };
-                                }
-
+                            case TransactionState.Delivered:
                                 return new TransactionResult
                                 {
                                     Success = true,
                                     TxId = txId,
                                     Response = txResult,
                                 };
-                            }
+                            case TransactionState.Failed:
+                                return new TransactionResult
+                                {
+                                    Success = false,
+                                    TxId = txId,
+                                    Error = statusError ?? "Transaction failed",
+                                    Response = txResult,
+                                };
                         }
                     }
                     catch
@@ -506,12 +508,13 @@ namespace Acme.Net.Sdk.Signing
                     await Task.Delay(interval).ConfigureAwait(false);
                 }
 
-                // Polling timed out but submission was accepted - assume success
-                // (matches Python SDK behavior)
+                // Submitted, but never reported delivered. It may still be pending, so say so rather
+                // than claiming success; the caller has the txid to keep polling with.
                 return new TransactionResult
                 {
-                    Success = true,
+                    Success = false,
                     TxId = txId,
+                    Error = $"Timed out after {maxAttempts} attempts waiting for {txId} to be delivered; it may still be pending",
                     Response = submitResult,
                 };
             }
@@ -684,6 +687,55 @@ namespace Acme.Net.Sdk.Signing
 
         private static string StripScheme(string url)
             => url.StartsWith("acc://", StringComparison.OrdinalIgnoreCase) ? url.Substring("acc://".Length) : url;
+
+        /// <summary>
+        /// Interprets a transaction-query record: delivered, failed (with the node's message), or
+        /// still pending. The v3 API reports <c>status</c> as a code NAME ("delivered", "pending",
+        /// "unauthenticated", ...) beside a numeric <c>statusNo</c> and an <c>error</c> object; the
+        /// older shape is an object with <c>delivered</c> and <c>error</c>. Both are understood.
+        /// </summary>
+        public static TransactionState InterpretTransactionStatus(JsonElement txResult, out string? error)
+        {
+            error = null;
+            if (!txResult.TryGetProperty("status", out var status))
+                return TransactionState.Pending;
+
+            if (status.ValueKind == JsonValueKind.String)
+            {
+                var name = status.GetString() ?? "";
+                int? code = txResult.TryGetProperty("statusNo", out var n) && n.ValueKind == JsonValueKind.Number
+                    ? n.GetInt32()
+                    : null;
+                var hasError = txResult.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.Object;
+                if (hasError || code >= 400)
+                {
+                    var message = hasError && err.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String
+                        ? m.GetString()
+                        : name;
+                    error = $"Transaction failed: {message} ({name}, code {code})";
+                    return TransactionState.Failed;
+                }
+                return string.Equals(name, "delivered", StringComparison.OrdinalIgnoreCase) || code == 201
+                    ? TransactionState.Delivered
+                    : TransactionState.Pending;
+            }
+
+            if (status.ValueKind == JsonValueKind.Object &&
+                status.TryGetProperty("delivered", out var delivered) && delivered.ValueKind == JsonValueKind.True)
+            {
+                if (status.TryGetProperty("error", out var e) &&
+                    e.ValueKind != JsonValueKind.Null && e.ValueKind != JsonValueKind.Undefined)
+                {
+                    error = e.ValueKind == JsonValueKind.Object && e.TryGetProperty("message", out var em)
+                        ? em.GetString() ?? "Transaction error"
+                        : e.ToString();
+                    return TransactionState.Failed;
+                }
+                return TransactionState.Delivered;
+            }
+
+            return TransactionState.Pending;
+        }
 
         /// <summary>
         /// True if a V3 transaction-query record reports the transaction as delivered (executed).
