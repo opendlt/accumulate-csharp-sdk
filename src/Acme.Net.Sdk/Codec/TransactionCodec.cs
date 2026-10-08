@@ -232,7 +232,7 @@ namespace Acme.Net.Sdk.Codec
         /// Field 3: Memo (string)
         /// Field 4: Metadata (bytes)
         /// </summary>
-        internal static byte[] MarshalHeader(Dictionary<string, object?> header)
+        public static byte[] MarshalHeader(Dictionary<string, object?> header)
         {
             using var m = new Marshaller();
 
@@ -257,7 +257,105 @@ namespace Acme.Net.Sdk.Codec
                 m.WriteBytes(4, Convert.FromHexString(metaHex));
             }
 
+            // Field 5: Expire { AtTime (field 1, time) }
+            var expire = GetDictValue(header, "expire");
+            if (expire != null)
+            {
+                var atTime = ParseTime(expire, "atTime");
+                if (atTime != null)
+                {
+                    using var em = new Marshaller();
+                    WriteTimeSeconds(em, 1, atTime.Value);
+                    m.WriteBytes(5, em.GetBytes());
+                }
+            }
+
+            // Field 6: HoldUntil { MinorBlock (field 1, uint) }
+            var holdUntil = GetDictValue(header, "holdUntil");
+            if (holdUntil != null && holdUntil.TryGetValue("minorBlock", out var minorBlock) && minorBlock != null)
+            {
+                var mb = Convert.ToInt64(minorBlock);
+                if (mb != 0)
+                {
+                    using var hm = new Marshaller();
+                    hm.WriteUInt(1, mb);
+                    m.WriteBytes(6, hm.GetBytes());
+                }
+            }
+
+            // Field 7 (repeated): Authorities
+            WriteAuthorities(m, header, 7);
+
+            // Field 8: HashLock { HashAlgorithm (1, enum), Hash (2, bytes), Expiration (3, time) }
+            var hashLock = GetDictValue(header, "hashLock");
+            if (hashLock != null)
+            {
+                var hlBytes = MarshalHashLockOptions(hashLock);
+                if (hlBytes.Length > 0) m.WriteBytes(8, hlBytes);
+            }
+
             return m.GetBytes();
+        }
+
+        /// <summary>
+        /// Marshal HashLockOptions (also the payload of header field 8):
+        /// 1=HashAlgorithm (enum), 2=Hash (bytes), 3=Expiration (time). Zero/empty fields are omitted.
+        /// </summary>
+        public static byte[] MarshalHashLockOptions(Dictionary<string, object?> opts)
+        {
+            using var m = new Marshaller();
+            var alg = ParseHashAlgorithm(opts, "hashAlgorithm");
+            if (alg != 0) m.WriteUInt(1, alg);
+            var hash = GetStringValue(opts, "hash");
+            if (!string.IsNullOrEmpty(hash)) m.WriteBytes(2, Convert.FromHexString(hash));
+            var exp = ParseTime(opts, "expiration");
+            if (exp != null) WriteTimeSeconds(m, 3, exp.Value);
+            return m.GetBytes();
+        }
+
+        /// <summary>
+        /// Parse a HashAlgorithm enum from its JSON name (sha256, sha256d, hash160) or number.
+        /// Returns 0 when absent. Throws on an unrecognised name.
+        /// </summary>
+        private static int ParseHashAlgorithm(Dictionary<string, object?> d, string key)
+        {
+            if (!d.TryGetValue(key, out var v) || v == null) return 0;
+            if (v is JsonElement je)
+                v = je.ValueKind == JsonValueKind.Number ? je.GetInt64() : je.GetString();
+            if (v is string str)
+            {
+                switch (str.ToLowerInvariant())
+                {
+                    case "unknown": return 0;
+                    case "sha256": return 1;
+                    case "sha256d": return 2;
+                    case "hash160": return 3;
+                    default:
+                        if (int.TryParse(str, out var n)) return n;
+                        throw new AccumulateEncodingException($"Unknown hash algorithm: {str}");
+                }
+            }
+            return Convert.ToInt32(v);
+        }
+
+        private static DateTimeOffset? ParseTime(Dictionary<string, object?> d, string key)
+        {
+            if (!d.TryGetValue(key, out var v) || v == null) return null;
+            if (v is DateTimeOffset dto) return dto;
+            if (v is DateTime dt) return new DateTimeOffset(dt.ToUniversalTime());
+            var str = GetStringValue(d, key);
+            if (string.IsNullOrEmpty(str)) return null;
+            return DateTimeOffset.Parse(str, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal);
+        }
+
+        /// <summary>
+        /// Go's WriteTime: UTC Unix seconds as a signed (zigzag) varint.
+        /// (Marshaller.WriteTime writes fixed 8-byte milliseconds and is NOT Go-compatible.)
+        /// </summary>
+        private static void WriteTimeSeconds(Marshaller m, int fieldNr, DateTimeOffset t)
+        {
+            m.WriteVarint(fieldNr, t.ToUnixTimeSeconds());
         }
 
         /// <summary>
@@ -341,6 +439,12 @@ namespace Acme.Net.Sdk.Codec
                     break;
                 case TransactionTypeCode.BurnCredits:
                     MarshalBurnCredits(m, body);
+                    break;
+                case TransactionTypeCode.ReleaseLockedOperation:
+                    MarshalReleaseLockedOperation(m, body);
+                    break;
+                case TransactionTypeCode.SyntheticLockedDeposit:
+                    MarshalSyntheticLockedDeposit(m, body);
                     break;
                 default:
                     // For unknown types, just write the type code (already written)
@@ -798,6 +902,59 @@ namespace Acme.Net.Sdk.Codec
             }
         }
 
+        private static void MarshalReleaseLockedOperation(Marshaller m, Dictionary<string, object?> body)
+        {
+            // tag 02: lockedTxID (txid), tag 03: preimage (bytes)
+            var txid = GetStringValue(body, "lockedTxID");
+            if (!string.IsNullOrEmpty(txid)) m.WriteTxid(2, new TxID(txid!));
+            var preimage = GetStringValue(body, "preimage");
+            if (!string.IsNullOrEmpty(preimage)) m.WriteBytes(3, Convert.FromHexString(preimage));
+        }
+
+        private static void MarshalSyntheticLockedDeposit(Marshaller m, Dictionary<string, object?> body)
+        {
+            // tag 02: SyntheticOrigin { 1=Cause (txid), 3=Initiator (url), 4=FeeRefund (uint), 5=Index (uint) }
+            // Always written, even when empty (Go uses WriteValue for the embedded struct).
+            using (var om = new Marshaller())
+            {
+                var cause = GetStringValue(body, "cause");
+                if (!string.IsNullOrEmpty(cause)) om.WriteTxid(1, new TxID(cause!));
+                var initiator = GetStringValue(body, "initiator");
+                if (!string.IsNullOrEmpty(initiator)) om.WriteUrl(3, new Url(initiator!));
+                if (body.TryGetValue("feeRefund", out var fr) && fr != null && Convert.ToInt64(fr) != 0)
+                    om.WriteUInt(4, Convert.ToInt64(fr));
+                if (body.TryGetValue("index", out var idx) && idx != null && Convert.ToInt64(idx) != 0)
+                    om.WriteUInt(5, Convert.ToInt64(idx));
+                m.WriteBytes(2, om.GetBytes());
+            }
+
+            var token = GetStringValue(body, "token");
+            if (!string.IsNullOrEmpty(token)) m.WriteUrl(3, new Url(token!));
+
+            var amountStr = GetStringValue(body, "amount");
+            if (!string.IsNullOrEmpty(amountStr))
+            {
+                var amount = BigInteger.Parse(amountStr!);
+                if (amount.Sign != 0)
+                    m.WriteBytes(4, amount.ToByteArray(isUnsigned: true, isBigEndian: true));
+            }
+
+            var sender = GetStringValue(body, "sender");
+            if (!string.IsNullOrEmpty(sender)) m.WriteUrl(5, new Url(sender!));
+
+            var alg = ParseHashAlgorithm(body, "hashAlgorithm");
+            if (alg != 0) m.WriteUInt(6, alg);
+
+            var hash = GetStringValue(body, "hash");
+            if (!string.IsNullOrEmpty(hash)) m.WriteBytes(7, Convert.FromHexString(hash!));
+
+            var exp = ParseTime(body, "expiration");
+            if (exp != null) WriteTimeSeconds(m, 8, exp.Value);
+
+            if (body.TryGetValue("isIssuer", out var iss) && iss is bool isIssuer && isIssuer)
+                m.WriteBool(9, true);
+        }
+
         // ---- Helpers ----
 
         private static void WriteAuthorities(Marshaller m, Dictionary<string, object?> body, int fieldNr)
@@ -838,6 +995,7 @@ namespace Acme.Net.Sdk.Codec
             if (!dict.TryGetValue(key, out var value) || value == null) return null;
 
             if (value is List<object?> list) return list;
+            if (value is Newtonsoft.Json.Linq.JArray ja) return ja.Select(UnwrapToken).ToList();
             if (value is List<object> listObj) return listObj.Cast<object?>().ToList();
             if (value is IEnumerable<object> enumerable) return enumerable.Cast<object?>().ToList();
             if (value is JsonElement je && je.ValueKind == JsonValueKind.Array)
@@ -850,6 +1008,16 @@ namespace Acme.Net.Sdk.Codec
             return null;
         }
 
+        /// <summary>Convert a Newtonsoft token to the plain CLR shapes the marshaller understands.</summary>
+        private static object? UnwrapToken(Newtonsoft.Json.Linq.JToken? t) => t switch
+        {
+            null => null,
+            Newtonsoft.Json.Linq.JValue v => v.Value,
+            Newtonsoft.Json.Linq.JObject o => o.Properties().ToDictionary(p => p.Name, p => UnwrapToken(p.Value)),
+            Newtonsoft.Json.Linq.JArray a => a.Select(UnwrapToken).ToList(),
+            _ => t.ToString(),
+        };
+
         private static Dictionary<string, object?>? GetDictValue(Dictionary<string, object?> dict, string key)
         {
             if (!dict.TryGetValue(key, out var value) || value == null) return null;
@@ -861,6 +1029,10 @@ namespace Acme.Net.Sdk.Codec
             if (value is Dictionary<string, object?> d) return d;
             if (value is Dictionary<string, object> d2)
                 return d2.ToDictionary(kv => kv.Key, kv => (object?)kv.Value);
+            // Newtonsoft: a header/body deserialized into Dictionary<string, object?> keeps nested
+            // objects as JObject. Returning null here would silently drop the field from the hash.
+            if (value is Newtonsoft.Json.Linq.JObject jo)
+                return jo.Properties().ToDictionary(p => p.Name, p => UnwrapToken(p.Value));
             if (value is JsonElement je && je.ValueKind == JsonValueKind.Object)
             {
                 var result = new Dictionary<string, object?>();

@@ -58,6 +58,8 @@ namespace Acme.Net.Sdk.Protocol
                 "syntheticDepositTokens" => new Generated.Protocol.SyntheticDepositTokens(),
                 "syntheticDepositCredits" => new Generated.Protocol.SyntheticDepositCredits(),
                 "syntheticBurnTokens" => new Generated.Protocol.SyntheticBurnTokens(),
+                "releaseLockedOperation" => new Generated.Protocol.ReleaseLockedOperation(),
+                "syntheticLockedDeposit" => new Generated.Protocol.SyntheticLockedDeposit(),
                 //"syntheticForwardTransaction" => new Generated.Protocol.SyntheticForwardTransaction(),
                 //"systemGenesis" => new Generated.Protocol.SystemGenesis(),
                 //"systemWriteData" => new Generated.Protocol.SystemWriteData(),

@@ -31,6 +31,7 @@ namespace Acme.Net.Sdk.Protocol
         // 19-20 unused
         public const int UpdateAccountAuth = 21;
         public const int UpdateKey = 22;
+        public const int ReleaseLockedOperation = 24; // 0x18
 
         // ---- Network/system transactions ----
 
@@ -46,6 +47,7 @@ namespace Acme.Net.Sdk.Protocol
         public const int SyntheticDepositCredits = 52;
         public const int SyntheticBurnTokens = 53;
         public const int SyntheticForwardTransaction = 54;
+        public const int SyntheticLockedDeposit = 55; // 0x37
 
         // ---- System transactions ----
 
@@ -79,6 +81,7 @@ namespace Acme.Net.Sdk.Protocol
                 [UpdateKeyPage] = "updateKeyPage",
                 [UpdateAccountAuth] = "updateAccountAuth",
                 [UpdateKey] = "updateKey",
+                [ReleaseLockedOperation] = "releaseLockedOperation",
                 [LockAccount] = "lockAccount",
                 [TransferCredits] = "transferCredits",
                 [BurnCredits] = "burnCredits",
@@ -91,6 +94,7 @@ namespace Acme.Net.Sdk.Protocol
                 [SyntheticDepositCredits] = "syntheticDepositCredits",
                 [SyntheticBurnTokens] = "syntheticBurnTokens",
                 [SyntheticForwardTransaction] = "syntheticForwardTransaction",
+                [SyntheticLockedDeposit] = "syntheticLockedDeposit",
                 [SystemGenesis] = "systemGenesis",
                 [DirectoryAnchor] = "directoryAnchor",
                 [BlockValidatorAnchor] = "blockValidatorAnchor",

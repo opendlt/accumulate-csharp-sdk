@@ -330,6 +330,33 @@ namespace Acme.Net.Sdk.V3
             return CallAsync("metrics", options);
         }
 
+        // ---- Proof service (Accumulate 1.4.6.7) ----
+
+        /// <summary>
+        /// Returns a record per major block in [Start, End] (directory only).
+        /// The response is returned untyped.
+        /// </summary>
+        public Task<JsonElement> MajorHeaderRangeAsync(MajorHeaderRangeOptions options)
+        {
+            return CallAsync("major-header-range", options);
+        }
+
+        /// <summary>
+        /// Binds minor blocks past the spine to it (directory only). The response is returned untyped.
+        /// </summary>
+        public Task<JsonElement> MinorRootRangeAsync(MinorRootRangeOptions options)
+        {
+            return CallAsync("minor-root-range", options);
+        }
+
+        /// <summary>
+        /// Binds a partition's BPT root to a directory root. The response is returned untyped.
+        /// </summary>
+        public Task<JsonElement> AnchorReceiptAsync(AnchorReceiptOptions options)
+        {
+            return CallAsync("anchor-receipt", options);
+        }
+
         // ---- Helpers ----
 
         private static List<JsonElement> ExtractResultList(JsonElement result)

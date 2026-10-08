@@ -58,13 +58,14 @@ namespace Acme.Net.Sdk.Signing
             Dictionary<string, object?> body,
             MultiSigParticipant initiator,
             string? headerMemo = null,
-            byte[]? headerMetadata = null)
+            byte[]? headerMetadata = null,
+            HeaderOptions? headerOptions = null)
         {
             var initMeta = await initiator.Signer
                 .ComputeMetadataAsync(initiator.SignatureMemo, initiator.SignatureData, initiator.Vote)
                 .ConfigureAwait(false);
 
-            var header = SmartSigner.BuildHeader(principal, initMeta.MetadataHash, headerMemo, headerMetadata);
+            var header = SmartSigner.BuildHeader(principal, initMeta.MetadataHash, headerMemo, headerMetadata, headerOptions);
             var txHash = TransactionCodec.ComputeTransactionHash(header, body);
             var signature = initiator.Signer.BuildSignature(txHash, initMeta);
 
@@ -90,14 +91,15 @@ namespace Acme.Net.Sdk.Signing
             MultiSigParticipant initiator,
             IEnumerable<MultiSigParticipant> coSigners,
             string? headerMemo = null,
-            byte[]? headerMetadata = null)
+            byte[]? headerMetadata = null,
+            HeaderOptions? headerOptions = null)
         {
             // 1. Initiator metadata first — its hash defines the header initiator (and thus the txHash).
             var initMeta = await initiator.Signer
                 .ComputeMetadataAsync(initiator.SignatureMemo, initiator.SignatureData, initiator.Vote)
                 .ConfigureAwait(false);
 
-            var header = SmartSigner.BuildHeader(principal, initMeta.MetadataHash, headerMemo, headerMetadata);
+            var header = SmartSigner.BuildHeader(principal, initMeta.MetadataHash, headerMemo, headerMetadata, headerOptions);
             var txHash = TransactionCodec.ComputeTransactionHash(header, body);
 
             // 2. Every participant signs the SAME txHash with their own metadata.
@@ -126,9 +128,10 @@ namespace Acme.Net.Sdk.Signing
             MultiSigParticipant initiator,
             IEnumerable<MultiSigParticipant> coSigners,
             string? headerMemo = null,
-            byte[]? headerMetadata = null)
+            byte[]? headerMetadata = null,
+            HeaderOptions? headerOptions = null)
         {
-            var envelope = await BuildEnvelopeAsync(principal, body, initiator, coSigners, headerMemo, headerMetadata)
+            var envelope = await BuildEnvelopeAsync(principal, body, initiator, coSigners, headerMemo, headerMetadata, headerOptions)
                 .ConfigureAwait(false);
             var results = await client.SubmitAsync(envelope).ConfigureAwait(false);
             return results.Count > 0 ? results[0] : default;

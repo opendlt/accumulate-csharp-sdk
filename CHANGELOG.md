@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.5.0] - 2026-10-08
+
+### Added
+- **Accumulate 1.4.6.x protocol support.**
+  - **Hash-locked transfers (HTLC).** `TransactionHeader.HashLock` (header field 8, `HashLockOptions`
+    with `HashLockAlgorithm`, plus `ValidateForSubmit()`), transaction types `ReleaseLockedOperation`
+    (0x18) and `SyntheticLockedDeposit` (0x37), and `TxBody.ReleaseLockedOperation` / `TxBody.HashLock`.
+  - `HeaderOptions` (`Expire`, `HoldUntil`, `Authorities`, `HashLock`), accepted by `SmartSigner.SignAsync`,
+    `SignAndSubmitAsync`, `SignSubmitAndWaitAsync` and the `MultiSig` entry points; `TxBody.Expire` / `TxBody.HoldUntil`.
+  - v3: `Receipt` model (`ForHeight`, `Complete`, `Partition`, `StartsAtMainState`), `ReceiptOptions`, and
+    `MajorHeaderRangeAsync` / `MinorRootRangeAsync` / `AnchorReceiptAsync` with their options types.
+  - `NetworkGlobals` model with `BlockInterval` (reads `{seconds, nanoseconds}`, a number of seconds, or a Go duration string).
+- `GoldenVectorTests` checks header, HashLock, body and transaction-hash bytes against vectors produced
+  by Go's own marshaler (accumulate e1d1db9, 1.4.6.7), through both the dictionary and typed encoders.
+
+### Fixed
+- **`SmartSigner.SignSubmitAndWaitAsync` could report a rejected transaction as a success.** The v3 API
+  reports `status` as a code name (`"delivered"`, `"unauthenticated"`, ...) beside `statusNo` and an
+  `error` object, but only an object-shaped `status` was understood, so a transaction was never seen as
+  delivered or as failed and the wait fell through to "assume success". Delivery and failure are now read
+  from either shape (`SmartSigner.InterpretTransactionStatus`) and the node's message is returned. A wait
+  that times out is now `Success = false` with the txid, instead of an assumed success.
+- `TransactionCodec.MarshalHeader` ignored `expire` (5), `holdUntil` (6) and `authorities` (7), and the
+  typed `TransactionHeader` omitted them too. A transaction using them hashed differently from the
+  network's hash, so its signature never verified or aggregated. Both encoders now write them exactly
+  as Go does; headers that don't use them encode identically to before.
+- The codec silently dropped nested header/body values (`expire`, `hashLock`, `authorities`, ...)
+  that arrived as Newtonsoft `JObject`/`JArray`, e.g. a header shared with a co-signer and read back
+  with `JsonConvert`. They are now read like `System.Text.Json` values.
+
 ## [2.3.6] - 2026-07-31
 
 ### Added
