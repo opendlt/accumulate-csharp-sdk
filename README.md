@@ -37,12 +37,20 @@ dotnet add reference path/to/src/Acme.Net.Sdk/Acme.Net.Sdk.csproj
 
 ### Submodule Setup
 
-Test vectors are stored in a git submodule. If you cloned without `--recursive`:
+Test vectors are stored in a git submodule (`test/vectors`). Either clone with it:
 
 ```bash
-git submodule add https://gitlab.com/accumulatenetwork/sdk/test-data.git test/vectors
+git clone --recurse-submodules https://github.com/opendlt/accumulate-csharp-sdk.git
+```
+
+or, if you already cloned without `--recurse-submodules`:
+
+```bash
 git submodule update --init --recursive
 ```
+
+Without the submodule the project still builds (with warning `ACMEVEC001`), but the tests that read
+`test/vectors/protocol.4.json` fail until you fetch it.
 
 ## Quick Start
 
