@@ -38,11 +38,20 @@
   <ItemGroup>
     <!-- This assumes the submodule path is ../../test/vectors relative to this csproj file -->
     <!-- Adjust the path if your submodule is located differently -->
-    <Content Include="..\..\test\vectors\protocol.4.json">
+    <Content Include="..\..\test\vectors\protocol.4.json" Condition="Exists('..\..\test\vectors\protocol.4.json')">
       <Link>vectors\protocol.4.json</Link> <!-- This places it in a 'vectors' subdirectory in the output -->
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <!--
+    test/vectors is a git submodule, which a plain `git clone` does not fetch. Without this guard the
+    build stops at an opaque "MSB3030: Could not copy the file ...\protocol.4.json". Build anyway, say
+    exactly what to run, and let the tests that need the vectors fail with their own explanation.
+  -->
+  <Target Name="WarnMissingTestVectors" BeforeTargets="BeforeBuild" Condition="!Exists('..\..\test\vectors\protocol.4.json')">
+    <Warning Code="ACMEVEC001" Text="Test vectors are missing: test/vectors is a git submodule. Run 'git submodule update --init --recursive'. Tests that read protocol.4.json will fail until you do." />
+  </Target>
 
   <ItemGroup>
     <Content Include="Vectors/accumulate-1.4.6.7-vectors.json">
